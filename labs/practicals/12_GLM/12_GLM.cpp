@@ -79,6 +79,7 @@ int main()
 	mat4 H(2.0f);
 
 	G[0][1] = 99.0f;
+	G[0][1] = 0.0f;
 
 	mat4 I = G + H;
 
@@ -86,9 +87,11 @@ int main()
 
 	mat4 K = I * J;
 
-	mat2x3 L(1.0);
+	vec4 L = J * e;
 
-	mat2x3 M = L * F;
+	mat4 M = translate(G, x);
+
+	vec3 N = M * vec4(d, 1.0f);
 
 
 }
