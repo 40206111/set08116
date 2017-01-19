@@ -78,8 +78,7 @@ int main()
 	mat4 G(1.0f);
 	mat4 H(2.0f);
 
-	G[0][1] = 99.0f;
-	G[0][1] = 0.0f;
+	H[0][1] = 99.0f;
 
 	mat4 I = G + H;
 
@@ -89,9 +88,42 @@ int main()
 
 	vec4 L = J * e;
 
-	mat4 M = translate(G, x);
+	mat4 M = translate(mat4(1.0f), vec3(1.0f, 0.0f, 0.0f));
 
-	vec3 N = M * vec4(d, 1.0f);
+	vec3 N = M * vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
+	mat4 O = rotate(G, 90.0f, vec3(1.0f, 0.0f, 0.0f));
+
+	mat4 P = rotate(G, 90.0f, vec3(0.0f, 1.0f, 0.0f));
+
+	mat4 Q = rotate(G, 90.0f, vec3(0.0f, 0.0f, 1.0f));
+
+	vec3 R = O * vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	vec3 S = P * vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	vec3 T = Q * vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	mat4 u1 = scale(G, x);
+
+	vec3 v1 = u1 * vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	mat4 w1 = M * (O * u1);
+
+	vec3 x1 = w1 * vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	quat y1;
+
+	quat z1 = rotate(quat(), 90.0f, vec3(1.0f, 0.0f, 0.0f));
+
+	quat a1 = rotate(quat(), 90.0f, vec3(0.0f, 1.0f, 0.0f));
+
+	quat b1 = rotate(quat(), 90.0f, vec3(0.0f, 0.0f, 1.0f));
+
+	quat c1 = z1 * a1 * b1;
+
+	mat4 d1 = mat4_cast(c1);
+
+	vec3 e1 = d1 * vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 }
