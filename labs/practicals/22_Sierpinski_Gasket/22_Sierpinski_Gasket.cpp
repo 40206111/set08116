@@ -9,11 +9,14 @@ geometry geom;
 effect eff;
 target_camera cam;
 
+vector<vec4> col = { vec4(1.0f, 0.0f, 0.0f, 1.0f), vec4(0.0f, 1.0f, 0.0f, 1.0f), vec4(0.0f, 0.0f, 1.0f, 1.0f) };
+int i = 0;
+
 // Helper method - adds a triangle to geometry
 void triangle(const vector<vec3> &points, vector<vec3> &positions, vector<vec4> &colours) {
   positions.insert(positions.end(), points.begin(), points.end());
   for (auto i = 0; i < 3; ++i){
-    colours.push_back(vec4(1.0f, 0.0f, 0.0f, 1.0f));
+    colours.push_back(col[i%3]);
   }
 
 }
@@ -21,17 +24,17 @@ void triangle(const vector<vec3> &points, vector<vec3> &positions, vector<vec4> 
 void divide_triangle(const vector<vec3> &points, unsigned int count, vector<vec3> &positions, vector<vec4> &colours) {
   // *********************************
   // IF we have more divisions to do?
+	if (count > 0) {
+		// Calculate new vertices to work on
+		vector<vec3> m = { ((points[0] + points[1]) / 2.0f), ((points[0] + points[2]) / 2.0f), ((points[1] + points[2]) / 2.0f) };
+		// Divide new triangles
+		divide_triangle({ points[0], m[0], m[1] }, count-1, positions, colours);
+		divide_triangle({ m[2], points[2], m[1] }, count-1, positions, colours);
+		divide_triangle({ m[2], m[0], points[1] }, count-1, positions, colours);
 
-    // Calculate new vertices to work on
-
-    // Divide new triangles
-
-
-
-
-
-
-
+	} else {
+		triangle(points, positions, colours);
+	}
   // *********************************
 }
 
