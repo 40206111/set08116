@@ -29,10 +29,10 @@ bool load_content() {
   // Create three mesh objects - reuse geometry
   for (auto &m : meshes) {
     // *********************************
-
+	  m = mesh(geom);
     // Scale each mesh by 10
-
-    // *********************************
+	  m.get_transform().scale = vec3(10.0f);
+	// *********************************
   }
 
   // Set mesh positions - remember scale
@@ -52,12 +52,12 @@ bool load_content() {
   // 1 - Auto Generate mipmaps
   texs[1] = texture("textures/checker.png", true, false);
   // 2 - Manual Mip Levels
-  texs[2] = texture({"textures/uv_32.png", "textures/uv_16.png", "textures/uv_8.png", "textures/uv_4.png",
-                     "textures/uv_2.png", "textures/uv_1.png"},
+  texs[2] = texture({"textures/check_6.png", "textures/check_5.png", "textures/check_4.png", "textures/check_3.png",
+                     "textures/check_2.png", "textures/check_1.png"},
                     false);
 
   // Set camera properties
-  cam.set_position(vec3(0, 0, 10.0f));
+  cam.set_position(vec3(0.0f, 0.0f, 10.0f));
   cam.set_target(vec3(0, 0, 1.0f));
   auto aspect = static_cast<float>(renderer::get_screen_width()) / static_cast<float>(renderer::get_screen_height());
   cam.set_projection(quarter_pi<float>(), aspect, 0.0001f, 10000.0f);
@@ -93,11 +93,11 @@ bool render() {
 
     // *********************************
     // Bind correct texture to renderer
-
+	renderer::bind(texs[i], 0);
     // Set the texture value for the shader here
-
+	glUniform1i(eff.get_uniform_location("tex"), 0);
     // Render the mesh
-
+	renderer::render(meshes[i]);
     // *********************************
   }
 

@@ -27,26 +27,27 @@ bool load_content() {
   geom.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
   geom.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
 
+
   // Create mesh object
   m = mesh(geom);
   // Scale geometry
   m.get_transform().scale = vec3(10.0f, 10.0f, 10.0f);
 
   // Load in blend shader
-  eff.add_shader("35_Blended_Textures/blend.vert", GL_VERTEX_SHADER);
-  eff.add_shader("35_Blended_Textures/blend.frag", GL_FRAGMENT_SHADER);
+  eff.add_shader("32_Blended_Textures/blend.vert", GL_VERTEX_SHADER);
+  eff.add_shader("32_Blended_Textures/blend.frag", GL_FRAGMENT_SHADER);
 
   // Build effect
   eff.build();
 
   // Load main two textures
-  texs[0] = texture("textures/grass.jpg");
+  texs[0] = texture("textures/mabel.png");
   texs[1] = texture("textures/stonygrass.jpg");
   // Load blend map, try both blend_map1.png and blend_map2.jpg
-  blend_map = texture("textures/blend_map1.png");
+  blend_map = texture("textures/mabel.png");
 
   // Set camera properties
-  cam.set_position(vec3(0.0f, 0.0f, 30.0f));
+  cam.set_position(vec3(10.0f, 10.0f, 30.0f));
   cam.set_target(vec3(0.0f, 0.0f, 0.0f));
   auto aspect = static_cast<float>(renderer::get_screen_width()) / static_cast<float>(renderer::get_screen_height());
   cam.set_projection(quarter_pi<float>(), aspect, 2.414f, 1000.0f);
@@ -76,9 +77,9 @@ bool render() {
 
   // *********************************
   // Bind the three textures - use different index for each
-
-
-
+  renderer::bind(texs[0], 0);
+  renderer::bind(texs[1], 1);
+  renderer::bind(blend_map, 2);
   // *********************************
 
   // Set the uniform values for textures

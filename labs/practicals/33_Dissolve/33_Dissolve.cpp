@@ -23,14 +23,14 @@ bool load_content() {
   m.get_transform().scale = vec3(10.0f);
 
   // Load in dissolve shader
-  eff.add_shader("36_Dissolve/dissolve.vert", GL_VERTEX_SHADER);
-  eff.add_shader("36_Dissolve/dissolve.frag", GL_FRAGMENT_SHADER);
+  eff.add_shader("33_Dissolve/dissolve.vert", GL_VERTEX_SHADER);
+  eff.add_shader("33_Dissolve/dissolve.frag", GL_FRAGMENT_SHADER);
 
   // Build effect
   eff.build();
 
   // Load in textures
-  tex = texture("textures/checker.png");
+  tex = texture("textures/mabel.png");
   dissolve = texture("textures/blend_map2.jpg");
 
   // Set camera properties
@@ -45,9 +45,9 @@ bool load_content() {
 bool update(float delta_time) {
   // Use up an down to modify the dissolve factor
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_UP))
-    dissolve_factor = clamp(dissolve_factor + 0.1f * delta_time, 0.0f, 1.0f);
+    dissolve_factor = clamp(dissolve_factor + 1.0f * delta_time, 0.0f, 1.0f);
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_DOWN))
-    dissolve_factor = clamp(dissolve_factor - 0.1f * delta_time, 0.0f, 1.0f);
+    dissolve_factor = clamp(dissolve_factor - 1.0f * delta_time, 0.0f, 1.0f);
   // Update camera
   cam.update(delta_time);
   uv_scroll += vec2(0, delta_time * 0.05);
@@ -72,13 +72,13 @@ bool render() {
 
   // *********************************
   // Set the dissolve_factor uniform value
-
+  glUniform1f(eff.get_uniform_location("dissolve_factor"), dissolve_factor);
   // Bind the two textures - use different index for each
-
-
+  renderer::bind(tex, 0);
+  renderer::bind(dissolve, 1);
   // Set the uniform values for textures - use correct index
-
-
+  glUniform1i(eff.get_uniform_location("tex"), 0);
+  glUniform1i(eff.get_uniform_location("dissolve"), 1);
   // *********************************
 
   // Set UV_scroll uniform, adds cool movent (Protip: This is a super easy way to do fire effects;))

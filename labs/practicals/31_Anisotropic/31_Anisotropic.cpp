@@ -29,13 +29,13 @@ bool load_content() {
   for (unsigned int i = 0; i < meshes.size(); ++i) {
     meshes[i] = mesh(geom);
     meshes[i].get_transform().scale = vec3(10.0f, 400.0f, 10.0f);
-    meshes[i].get_transform().rotate(vec3(-half_pi<float>(), 0.0f, 0.0f));
+    //meshes[i].get_transform().rotate(vec3(-half_pi<float>(), 0.0f, 0.0f));
     meshes[i].get_transform().translate((static_cast<float>(i) * vec3(21.0f, 0.0f, 0.0f)) - vec3(21.0f, 0.0f, 0));
   }
 
   // Load in texture shaders, !Note that are pulling in shader file from previous project!
-  eff.add_shader("31_Texturing_Shader/simple_texture.vert", GL_VERTEX_SHADER);
-  eff.add_shader("31_Texturing_Shader/simple_texture.frag", GL_FRAGMENT_SHADER);
+  eff.add_shader("27_Texturing_Shader/simple_texture.vert", GL_VERTEX_SHADER);
+  eff.add_shader("27_Texturing_Shader/simple_texture.frag", GL_FRAGMENT_SHADER);
 
   // Build effect
   eff.build();
@@ -47,13 +47,13 @@ bool load_content() {
   // 2 - mipmaps, no anisotropic
   // 3 - mipmaps, anisotropic
   // ******************************
-  texs[0] = texture("textures/checker.png", false, false);
-  texs[1] = texture("textures/checker.png", false, true);
-  texs[2] = texture("textures/checker.png", true, true);
-  texs[3] = texture("textures/checker.png", true, true);
+  texs[0] = texture("textures/mabel.png", false, false);
+  texs[1] = texture("textures/mabel.png", false, true);
+  texs[2] = texture("textures/mabel.png", true, false);
+  texs[3] = texture("textures/mabel.png", true, true);
 
   // Set camera properties
-  cam.set_position(vec3(10.0f, 2.0f, 200.0f));
+  cam.set_position(vec3(10.0f, 20.0f, 200.0f));
   cam.set_target(vec3(0.0f, 0.0f, 0.0f));
   auto aspect = static_cast<float>(renderer::get_screen_width()) / static_cast<float>(renderer::get_screen_height());
   cam.set_projection(quarter_pi<float>(), aspect, 2.414f, 1000.0f);
