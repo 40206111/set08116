@@ -7,9 +7,11 @@ using namespace graphics_framework;
 using namespace glm;
 
 mesh m;
+mesh m2;
 effect eff;
 target_camera cam;
 texture tex;
+texture tex2;
 float theta = 0.0f;
 float s = 0.0f;
 float total_time = 0.0f;
@@ -17,22 +19,28 @@ float total_time = 0.0f;
 bool load_content() {
   // Construct geometry object
   geometry geom;
+  geometry geom2;
   // Create triangle data
   // Positions
-  vector<vec3> positions{vec3(0.0f, 1.0f, 0.0f), vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f)};
+  vector<vec3> positions{vec3(0.0f, 1.0f, -1.0f), vec3(-1.0f, -1.0f, -1.0f), vec3(1.0f, -1.0f, -1.0f)};
+  vector<vec3> pos_square{ vec3(-2.0f, 0.0f, 0.0f), vec3(-2.0f, 2.0f, 0.0f), vec3(-4.0f, 2.0f, 0.0f), vec3(-2.0f,  0.0f, 0.0f), vec3(-4.0f, 2.0f, 0.0f), vec3(-4.0f, 0.0f, 0.0f) };
   // *********************************
   // Define texture coordinates for triangle
   vector<vec2> tex_coords{ vec2(0.5f, 0.0f), vec2(0.0f, -1.0f), vec2(1.0f, -1.0f) };
+  vector<vec2> tex_coords2{ vec2(1.0f, -1.0f), vec2(1.0f, 0.0f), vec2(0.0f, 0.0f), vec2(1.0f, -1.0f), vec2(0.0f, 0.0f), vec2(0.0f, -1.0f)};
   // *********************************
   // Add to the geometry
   geom.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
+  geom2.add_buffer(pos_square, BUFFER_INDEXES::POSITION_BUFFER);
   // *********************************
   // Add texture coordinate buffer to geometry
   geom.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
+  geom2.add_buffer(tex_coords2, BUFFER_INDEXES::TEXTURE_COORDS_1);
   // *********************************
 
   // Create mesh object
   m = mesh(geom);
+  m2 = mesh(geom2);
 
   // Load in texture shaders here
   eff.add_shader("27_Texturing_Shader/simple_texture.vert", GL_VERTEX_SHADER);
@@ -41,7 +49,8 @@ bool load_content() {
   // Build effect
   eff.build();
   // Load texture "textures/sign.jpg"
-  tex = texture("textures/mabel.png", false, true);
+  tex = texture("textures/mabel.png");
+  tex2 = texture("textures/check_5.png");
   // *********************************
 
   // Set camera properties
@@ -73,7 +82,7 @@ bool render() {
   renderer::bind(eff);
   mat4 S, R, M;
 
-  S = scale(mat4(1.0f), vec3(s, s, s));
+  S = scale(mat4(1.0f), vec3(s, s, 1.0f));
   R = rotate(mat4(1.0f), theta, vec3(0.0f, 0.0f, 1.0f));
   M = S * R;
   // Create MVP matrix
@@ -90,12 +99,21 @@ bool render() {
   // *********************************
   // Bind texture to renderer
   renderer::bind(tex, 0);
+  renderer::bind(tex2, 1);
   // Set the texture value for the shader here
   glUniform1i(eff.get_uniform_location("tex"), 0);
+  renderer::render(m);
+
+  glUniformMatrix4fv(eff.get_uniform_location("MVP"), // Location of uniform
+	  1,                               // Number of values - 1 mat4
+	  GL_FALSE,                        // Transpose the matrix?
+	  value_ptr(P * V * mat4(1.0f)));
   // *********************************
 
+  glUniform1i(eff.get_uniform_location("tex"), 1);
   // Render the mesh
-  renderer::render(m);
+
+  renderer::render(m2);
 
   return true;
 }
