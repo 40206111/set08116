@@ -10,6 +10,9 @@ mesh m;
 effect eff;
 target_camera cam;
 texture tex;
+float theta = 0.0f;
+float s = 0.0f;
+float total_time = 0.0f;
 
 bool load_content() {
   // Construct geometry object
@@ -19,26 +22,26 @@ bool load_content() {
   vector<vec3> positions{vec3(0.0f, 1.0f, 0.0f), vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f)};
   // *********************************
   // Define texture coordinates for triangle
-
+  vector<vec2> tex_coords{ vec2(0.5f, 0.0f), vec2(0.0f, -1.0f), vec2(1.0f, -1.0f) };
   // *********************************
   // Add to the geometry
   geom.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
   // *********************************
   // Add texture coordinate buffer to geometry
-
+  geom.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
   // *********************************
 
   // Create mesh object
   m = mesh(geom);
 
   // Load in texture shaders here
-  eff.add_shader("31_Texturing_Shader/simple_texture.vert", GL_VERTEX_SHADER);
-  eff.add_shader("31_Texturing_Shader/simple_texture.frag", GL_FRAGMENT_SHADER);
+  eff.add_shader("27_Texturing_Shader/simple_texture.vert", GL_VERTEX_SHADER);
+  eff.add_shader("27_Texturing_Shader/simple_texture.frag", GL_FRAGMENT_SHADER);
   // *********************************
   // Build effect
-
+  eff.build();
   // Load texture "textures/sign.jpg"
-
+  tex = texture("textures/mabel.png", false, true);
   // *********************************
 
   // Set camera properties
@@ -51,6 +54,15 @@ bool load_content() {
 }
 
 bool update(float delta_time) {
+
+	total_time += delta_time;
+
+	s = 1.0f + sinf(total_time);
+
+	s *= 5.0f;
+
+	theta += pi<float>() * delta_time;
+
   // Update the camera
   cam.update(delta_time);
   return true;
@@ -59,8 +71,13 @@ bool update(float delta_time) {
 bool render() {
   // Bind effect
   renderer::bind(eff);
+  mat4 S, R, M;
+
+  S = scale(mat4(1.0f), vec3(s, s, s));
+  R = rotate(mat4(1.0f), theta, vec3(0.0f, 0.0f, 1.0f));
+  M = S * R;
   // Create MVP matrix
-  auto M = m.get_transform().get_transform_matrix();
+  //auto M = m.get_transform().get_transform_matrix();
   auto V = cam.get_view();
   auto P = cam.get_projection();
   auto MVP = P * V * M;
@@ -72,9 +89,9 @@ bool render() {
 
   // *********************************
   // Bind texture to renderer
-
+  renderer::bind(tex, 0);
   // Set the texture value for the shader here
-
+  glUniform1i(eff.get_uniform_location("tex"), 0);
   // *********************************
 
   // Render the mesh
