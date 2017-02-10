@@ -9,15 +9,15 @@ map<string, mesh> meshes;
 effect eff;
 texture tex;
 free_camera cam;
-double* cursor_x = 0;
-double* cursor_y = 0;
+double cursor_x = 0;
+double cursor_y = 0;
 
 bool initialise() {
   // *********************************
   // Set input mode - hide the cursor
 	glfwSetInputMode(renderer::get_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   // Capture initial mouse position
-	glfwGetCursorPos(renderer::get_window(), cursor_x, cursor_y);
+	glfwGetCursorPos(renderer::get_window(), &cursor_x, &cursor_y);
   // *********************************
   return true;
 }
@@ -77,49 +77,54 @@ bool update(float delta_time) {
        (static_cast<float>(renderer::get_screen_height()) / static_cast<float>(renderer::get_screen_width()))) /
       static_cast<float>(renderer::get_screen_height());
 
-  double* current_x = 0;
-  double* current_y = 0;
+  double current_x = 0;
+  double current_y = 0;
   // *********************************
   // Get the current cursor position
-  glfwGetCursorPos(renderer::get_window(), current_x, current_y);
+  glfwGetCursorPos(renderer::get_window(), &current_x, &current_y);
   // Calculate delta of cursor positions from last frame
   double delta_x = current_x - cursor_x;
   double delta_y = current_y - cursor_y;
   // Multiply deltas by ratios - gets actual change in orientation
   delta_x *= ratio_width;
   delta_y *= ratio_height;
+  float speed = 20.0f * delta_time;
   // Rotate cameras by delta
   // delta_y - x-axis rotation
   // delta_x - y-axis rotation
-  cam.rotate(delta_x, delta_y);
+  cam.rotate(delta_x, -delta_y);
   // Use keyboard to move the camera - WSAD
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_W))
   {
-
-
+	  cam.move(vec3(0.0f, 0.0f, speed));
   }
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_A))
   {
-
-
+	  cam.move(vec3(-speed, 0.0f, 0.0f));
   }
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_S))
   {
-
-
+	  cam.move(vec3(0.0f, 0.0f, -speed));
   }
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_D))
   {
-
-
+	  cam.move(vec3(speed, 0.0f, 0.0f));
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_SPACE))
+  {
+	  cam.move(vec3(0.0f, speed, 0.0f));
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT_SHIFT))
+  {
+	  cam.move(vec3(0.0f, -speed, 0.0f));
   }
   // Move camera
-  cam.move(vec3(delta_x, delta_y, 0.0f));
+
   // Update the camera
   cam.update(delta_time);
   // Update cursor pos
-  glfwGetCursorPos(renderer::get_window(), cursor_x, cursor_y);
-
+  cursor_x = current_x;
+  cursor_y = current_y;
   // *********************************
   return true;
 }
