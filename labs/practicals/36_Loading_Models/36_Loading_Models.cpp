@@ -13,12 +13,10 @@ target_camera cam;
 bool load_content() {
   // *********************************
   // Load in model, models/teapot.obj
-	m = mesh(geometry("models/skull.3ds"));
+	m = mesh(geometry("models/teapot.obj"));
   // Load in texture, textures/checker.png
-	tex = texture("textures/checker.png");
+	tex = texture("textures/mabel.png");
   // *********************************
-
-	m.get_transform().scale = vec3(0.1f);
 
   // Load in shaders
   eff.add_shader("27_Texturing_Shader/simple_texture.vert", GL_VERTEX_SHADER);
