@@ -98,36 +98,42 @@ bool update(float delta_time) {
   // Rotate cameras by delta
   // delta_y - x-axis rotation
   // delta_x - y-axis rotation
-  cam.rotate(delta_x, delta_y);
+  cam.rotate(-delta_y, delta_x);
   // Use keyboard to move the target_mesh- WSAD
   // Also remember to translate camera
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_W))
+  {
+	  target_mesh.get_transform().translate(vec3(0.0f, 0.0f, -5.0f * delta_time));
+	  cam.translate(vec3(0.0f, 0.0f, -5.0f * delta_time));
 
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_A))
+  {
+	  target_mesh.get_transform().translate(vec3(-5.0f * delta_time, 0.0f, 0.0f));
+	  cam.translate(vec3(-5.0f * delta_time, 0.0f, 0.0f));
 
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_S))
+  {
+	  target_mesh.get_transform().translate(vec3(0.0f, 0.0f, 5.0f * delta_time));
+	  cam.translate(vec3(0.0f, 0.0f, 5.0f * delta_time));
 
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_D))
+  {
+	  target_mesh.get_transform().translate(vec3(5.0f * delta_time, 0.0f, 0.0f));
+	  cam.translate(vec3(5.0f * delta_time, 0.0f, 0.0f));
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  }
   // Use UP and DOWN to change camera distance
-
-
-
-
-
-
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_UP))
+  {
+	  cam.move(-5.0f * delta_time);
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_DOWN))
+  {
+	  cam.move(5.0f * delta_time);
+  }
   // Update the camera
   cam.update(delta_time);
   // Update cursor pos

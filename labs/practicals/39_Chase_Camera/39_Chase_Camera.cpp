@@ -100,7 +100,7 @@ bool update(float delta_time) {
 	  // x - delta_y
 	  // y - delta_x
 	  // z - 0
-  cam.rotate(vec3(delta_x, delta_y, 0.0f));
+  cam.rotate(vec3(-delta_y, delta_x, 0.0f));
   // Use keyboard to rotate target_mesh - QE rotate on y-axis
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_Q))
   {
