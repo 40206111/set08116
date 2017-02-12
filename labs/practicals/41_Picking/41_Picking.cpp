@@ -68,7 +68,7 @@ bool update(float delta_time) {
 
   // *********************************
   // Update the camera
-
+  cam.update(delta_time);
   // If mouse button pressed get ray and check for intersection
 
     // Get the mouse position
@@ -87,6 +87,7 @@ bool update(float delta_time) {
       float distance = 0.0f;
       if (test_ray_oobb(origin, direction, m.second.get_minimal(), m.second.get_maximal(),
                         m.second.get_transform().get_transform_matrix(), distance))
+	  {
         cout << m.first << " " << distance << endl;
     }
   }
