@@ -22,7 +22,7 @@ bool load_content() {
 	// Create mesh object
 	m = mesh(geom);
 
-<<<<<<< HEAD
+//<<<<<<< HEAD
 	// Load in colour shaders
 	eff.add_shader("26_Shaders/colour.vert", GL_VERTEX_SHADER);
 	eff.add_shader("26_Shaders/colour.frag", GL_FRAGMENT_SHADER);
@@ -30,13 +30,13 @@ bool load_content() {
 	// Build effect
 	eff.build();
 	// *********************************
-=======
+//=======
   // Load in colour shaders
   eff.add_shader("26_Shaders/colour.vert", GL_VERTEX_SHADER);
   eff.add_shader("26_Shaders/colour.frag", GL_FRAGMENT_SHADER);
   // *********************************
   // Build effect
->>>>>>> updates/master
+//>>>>>>> updates/master
 
 	// Set camera properties
 	cam.set_position(vec3(10.0f, 10.0f, 10.0f));
