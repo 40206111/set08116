@@ -52,8 +52,8 @@ bool load_content() {
   // 1 - Auto Generate mipmaps
   texs[1] = texture("textures/checker.png", true, false);
   // 2 - Manual Mip Levels
-  texs[2] = texture({"textures/check_6.png", "textures/check_5.png", "textures/check_4.png", "textures/check_3.png",
-                     "textures/check_2.png", "textures/check_1.png"},
+  texs[2] = texture({"textures/uv_32.png", "textures/uv_16.png", "textures/uv_8.png", "textures/uv_4.png",
+                     "textures/uv_2.png", "textures/uv_1.png"},
                     false);
 
   // Set camera properties
