@@ -41,7 +41,7 @@ bool load_content() {
 	meshes["torus"].get_transform().translate(vec3(-25.0f, 10.0f, -25.0f));
 	meshes["torus"].get_transform().rotate(vec3(half_pi<float>(), 0.0f, 0.0f));
 
-	// *********************************
+	// **********************************
 	// Set materials
 	// - all emissive is black
 	// - all specular is white

@@ -25,9 +25,9 @@ uniform vec3 eye_pos;
 uniform sampler2D tex;
 
 // Incoming position
-layout(location = 0) in vec3 position;
+layout(location = 0) in vec3 world_position;
 // Incoming normal
-layout(location = 1) in vec3 normal;
+layout(location = 1) in vec3 transformed_normal;
 // Incoming texture coordinate
 layout(location = 2) in vec2 tex_coord;
 
@@ -40,13 +40,13 @@ void main() {
   // Calculate ambient component
   vec4 ambient = mat.diffuse_reflection * light.ambient_intensity;
   // Calculate diffuse component
-  vec4 diffuse = max(dot(normal, light.light_dir), 0.0f) * (mat.diffuse_reflection * light.light_colour);
+  vec4 diffuse = max(dot(transformed_normal, light.light_dir), 0.0f) * (mat.diffuse_reflection * light.light_colour);
   // Calculate view direction
-  vec3 view_dir = normalize(eye_pos - position);
+  vec3 view_dir = normalize(eye_pos - world_position);
   // Calculate half vector
   vec3 half_v = normalize(light.light_dir + view_dir);
   // Calculate specular component
-  vec4 specular = pow(max(dot(normal, half_v), 0.0f), mat.shininess) * (mat.specular_reflection * light.light_colour);
+  vec4 specular = pow(max(dot(transformed_normal, half_v), 0.0f), mat.shininess) * (mat.specular_reflection * light.light_colour);
   // Sample texture
   vec4 tex_colour = texture(tex, tex_coord);
   // Calculate primary colour component
