@@ -33,7 +33,7 @@ void main() {
   vec4 diffuse = k * (material_colour * light_colour);
 
   // Ensure alpha is 1
-  diffuse.a = 1.0;
+  diffuse.a = 1.0f;
 
   // Output vertex colour - just diffuse
   vertex_colour = diffuse;
