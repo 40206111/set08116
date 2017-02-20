@@ -45,7 +45,7 @@ bool load_content() {
   // Set materials
   // - all emissive is black
   // - all specular is white
-  // - all shininess is 25
+  // - all shininess is 25s
   material mat;
   mat.set_emissive(vec4(0.0f, 0.0f, 0.0f, 1.0f));
   mat.set_specular(vec4(1.0f));
@@ -149,6 +149,22 @@ bool update(float delta_time) {
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_K))
   {
 	  constant += 1.0f * delta_time;
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_UP))
+  {
+	  light.rotate(vec3(2.0f * delta_time, 0.0f, 0.0f));
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_DOWN))
+  {
+	  light.rotate(vec3(-2.0f * delta_time, 0.0f, 0.0f));
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT))
+  {
+	  light.rotate(vec3(0.0f, 2.0f * delta_time, 0.0f));
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_RIGHT))
+  {
+	  light.rotate(vec3(0.0f, -2.0f * delta_time, 0.0f));
   }
   // *********************************
 
