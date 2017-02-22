@@ -44,9 +44,9 @@ uniform sampler2D tex;
 uniform sampler2D shadow_map;
 
 // Incoming position
-layout(location = 0) in vec3 position;
+layout(location = 0) in vec3 vertex_pos;
 // Incoming normal
-layout(location = 1) in vec3 normal;
+layout(location = 1) in vec3 transformed_normal;
 // Incoming texture coordinate
 layout(location = 2) in vec2 tex_coord;
 // Incoming light space position
