@@ -74,9 +74,9 @@ bool load_content() {
   mat.set_diffuse(vec4(1.0f));
   meshes["torus"].set_material(mat);
   // *********************************
-     
+   
   // Load texture
-  tex = texture("textures/checker.png");
+  tex = texture("textures/check_1.png");
     
   // Set lighting values
   // *********************************
@@ -196,13 +196,13 @@ bool render() {
     // Set N matrix uniform - remember - 3x3 matrix
 	glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE, value_ptr(m.get_transform().get_normal_matrix()));
     // Bind material
-	bind(m.get_material(), "mat");
+	renderer::bind(m.get_material(), "mat");
     // Bind point lights
-	bind(points, "points");
+	renderer::bind(points, "points");
     // Bind spot lights
-	bind(spots, "spots");
+	renderer::bind(spots, "spots");
     // Bind texture
-	bind(tex, 0);
+	renderer::bind(tex, 0);
     // Set tex uniform
 	glUniform1i(eff.get_uniform_location("tex"), 0);
     // Set eye position- Get this from active camera
