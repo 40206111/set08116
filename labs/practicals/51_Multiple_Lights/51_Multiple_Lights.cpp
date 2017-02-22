@@ -137,7 +137,7 @@ bool load_content() {
   // 30 range,1.0 power
   spots[4].set_position(vec3(-17.5f, 15.0f, -25.0f));
   spots[4].set_light_colour(vec4(0.0f, 1.0f, 0.0f, 1.0f));
-  spots[4].set_direction(normalize(vec3(1.0f, -1.0f, -1.0f)));
+  spots[4].set_direction(normalize(vec3(0.0f, -1.0f, 0.0f)));
   spots[4].set_range(20.0f);
   spots[4].set_power(0.5);
   // Load in shaders

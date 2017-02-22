@@ -59,7 +59,7 @@ vec4 calculate_point(in point_light point, in material mat, in vec3 vertex_pos, 
   float att_fat = point.constant + point.linear * d + point.quadratic * pow(d,2);
   // Calculate light colour
   vec4 light_col = (1/att_fat) * point.light_colour;
-
+  light_col.a = 1.0f;
   // Calculate light dir
   vec3 light_dir = normalize(point.position - vertex_pos);
   // Now use standard phong shading but using calculated light colour and direction
@@ -96,7 +96,7 @@ vec4 calculate_spot(in spot_light spot, in material mat, in vec3 vertex_pos, in 
   vec4 primary = mat.emissive + diffuse;
   vec4 colours  = primary * tex_colour + specular;
   colours.a = 1.0f;
-  // *********************************
+  // ********************************* 
   return colours;
 }
 
@@ -117,6 +117,6 @@ void main() {
   for(int i = 0; i < 5; ++i)
   {
   colour += calculate_spot(spots[i], mat, vertex_pos, transformed_normal, view_dir, tex_colour);
-}
+  }
   // *********************************
 }

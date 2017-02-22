@@ -50,11 +50,11 @@ struct material {
 #endif
 
 // Forward declarations of used functions
-vec4 calculate_direction(in directional_light light, in material mat, in vec3 normal, in vec3 view_dir,
+vec4 calculate_direction(in directional_light light, in material mat, in vec3 transformed_normal, in vec3 view_dir,
                          in vec4 tex_colour);
-vec4 calculate_point(in point_light point, in material mat, in vec3 position, in vec3 normal, in vec3 view_dir,
+vec4 calculate_point(in point_light point, in material mat, in vec3 vertex_pos, in vec3 transformed_normal, in vec3 view_dir,
                      in vec4 tex_colour);
-vec4 calculate_spot(in spot_light spot, in material mat, in vec3 position, in vec3 normal, in vec3 view_dir,
+vec4 calculate_spot(in spot_light spot, in material mat, in vec3 vertex_pos, in vec3 transformed_normal, in vec3 view_dir,
                     in vec4 tex_colour);
 
 // Directional light information
@@ -71,9 +71,9 @@ uniform vec3 eye_pos;
 uniform sampler2D tex;
 
 // Incoming position
-layout(location = 0) in vec3 position;
+layout(location = 0) in vec3 vertex_pos;
 // Incoming normal
-layout(location = 1) in vec3 normal;
+layout(location = 1) in vec3 transformed_normal;
 // Incoming texture coordinate
 layout(location = 2) in vec2 tex_coord;
 
@@ -83,18 +83,20 @@ layout(location = 0) out vec4 colour;
 void main() {
   // *********************************
   // Calculate view direction
-
+  vec3 view_dir = normalize(eye_pos - vertex_pos);
   // Sample texture
-
+  vec4 tex_colour = texture(tex, tex_coord);
   // Calculate directional light colour
-
+  colour += calculate_direction(light, mat, transformed_normal, view_dir, tex_colour);
   // Sum point lights
-
-
-
+  for (int i = 0; i < 4; ++i)
+  {
+  colour += calculate_point(points[i], mat, vertex_pos, transformed_normal, view_dir, tex_colour);
+  }
   // Sum spot lights
-
-
-
+  for(int i = 0; i < 5; ++i)
+  {
+  colour += calculate_spot(spots[i], mat, vertex_pos, transformed_normal, view_dir, tex_colour);
+  }
   // *********************************
 }
