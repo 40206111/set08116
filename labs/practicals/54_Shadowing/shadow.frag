@@ -44,11 +44,11 @@ uniform sampler2D tex;
 uniform sampler2D shadow_map;
 
 // Incoming position
-layout(location = 0) in vec3 vertex_pos;
+layout(location = 0) in vec3 vertex_position;
 // Incoming normal
 layout(location = 1) in vec3 transformed_normal;
 // Incoming texture coordinate
-layout(location = 2) in vec2 tex_coord;
+layout(location = 2) in vec2 tex_coord_out;
 // Incoming light space position
 layout(location = 3) in vec4 light_space_pos;
 
@@ -58,16 +58,17 @@ layout(location = 0) out vec4 colour;
 void main() {
   // *********************************
   // Calculate shade factor
-
+  float shade = calculate_shadow(shadow_map, light_space_pos);
   // Calculate view direction, normalize it
-
+  vec3 view_dir = normalize(eye_pos - vertex_position);
   // Sample texture
-
+  vec4 tex_colour = texture(tex, tex_coord_out);
   // Calculate spot light
-
+  colour = calculate_spot(spot, mat, vertex_position, transformed_normal, view_dir, tex_colour);
   // Scale colour by shade
-
+  colour *= shade;
   //Ensure alpha is 1.0
-
+  colour.a = 1.0f;
   // *********************************
-}
+
+  }

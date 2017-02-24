@@ -142,7 +142,7 @@ bool load_content() {
 	spots[4].set_range(20.0f);
 	spots[4].set_power(0.5);
 	// *********************************  
-	light.set_ambient_intensity(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+	light.set_ambient_intensity(vec4(0.3f, 0.3f, 0.3f, 0.3f));
 	light.set_direction(vec3(1.0f, 1.0f, -1.0f));
 	light.set_light_colour(vec4(1.0f));
 	// Load in shaders

@@ -13,7 +13,7 @@ target_camera cam;
 spot_light spot;
 shadow_map shadow;
 
-bool load_content() {
+bool load_content() { 
 	// *********************************
 	// Create shadow map- use screen size
 	shadow = shadow_map(renderer::get_screen_width(), renderer::get_screen_height());
@@ -28,7 +28,7 @@ bool load_content() {
 	// *********************************
 
 	// Load texture
-	tex = texture("textures/check_1.gif");
+	tex = texture("textures/checked.gif");   
 	  
 	// ***********************
 	// Set materials
@@ -58,6 +58,8 @@ bool load_content() {
 	spot.set_direction(normalize(-spot.get_position()));
 	spot.set_range(500.0f);
 	spot.set_power(10.0f);
+
+
 
 	// Load in shaders
 	main_eff.add_shader("54_Shadowing/shadow.vert", GL_VERTEX_SHADER);
@@ -189,12 +191,14 @@ bool render() {
 		renderer::bind(spot, "spot");
 		// Bind texture
 		renderer::bind(tex, 0);
+		auto vv = shadow_eff.get_uniform_location("tex");
 		// Set tex uniform
 		glUniform1i(shadow_eff.get_uniform_location("tex"), 0);
 		// Set eye position
+		auto va = shadow_eff.get_uniform_location("eye_pos");
 		glUniform3fv(shadow_eff.get_uniform_location("eye_pos"), 1, value_ptr(cam.get_position()));
 		// Bind shadow map texture - use texture unit 1
-		renderer::bind(shadow, 0);
+		renderer::bind(shadow.buffer->get_depth(), 1);
 		// Set the shadow_map uniform
 		glUniform1i(shadow_eff.get_uniform_location("shadow_map"), 1);
 		// Render mesh

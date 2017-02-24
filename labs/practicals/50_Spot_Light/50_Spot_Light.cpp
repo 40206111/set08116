@@ -12,7 +12,8 @@ target_camera cam;
 spot_light light;
 
 bool load_content() {
-  // Create plane mesh
+  // Create plane mesh 
+	 
   meshes["plane"] = mesh(geometry_builder::create_plane());
 
   // Create scene
