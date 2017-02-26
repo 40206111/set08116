@@ -12,6 +12,7 @@ map<string, mesh> meshes;
 double cursor_x = 0;
 double cursor_y = 0;
 texture tex;
+texture shade;
 
 bool initialise() {
 	//hide cursor
@@ -34,17 +35,21 @@ bool load_content() {
   geom.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
   geom.add_buffer(colours, BUFFER_INDEXES::COLOUR_BUFFER);
   */
-
-  //create floating island
+	 
+  //create floating island   
 	meshes["floating island"] = mesh(geometry("models/floating island.obj"));
 
 	// Load in shaders
 	eff.add_shader("shaders/shader.vert", GL_VERTEX_SHADER);
 	eff.add_shader("shaders/shader.frag", GL_FRAGMENT_SHADER);
 	// Build effect
-	eff.build();
+	eff.build(); 
 
 	tex = texture("textures/isllandUV.png");
+
+	vector<vec4> shade_data{ vec4(0.25f,0.25f,0.25f,1.0f), vec4(0.5f,0.5f,0.5f,1.0f), vec4(0.75f,0.75f, 0.75f, 1.0f), vec4(1.0f) };
+
+	shade = texture(shade_data, 4, 1, false, false);
 
 	// Set camera properties
 	cam.set_position(vec3(0.0f, 0.0f, 10.0f));
@@ -141,6 +146,12 @@ bool render() {
 	auto MVP = P*V*M;
 	//set MVP matrix uniform
 	glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
+
+	renderer::bind(tex, 0);
+	renderer::bind(shade, 1);
+
+	glUniform1i(eff.get_uniform_location("tex"), 0);
+	glUniform1i(eff.get_uniform_location("shade_tex"), 1);
 
 	renderer::render(m);
 
