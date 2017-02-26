@@ -11,6 +11,7 @@ free_camera cam;
 map<string, mesh> meshes;
 double cursor_x = 0;
 double cursor_y = 0;
+texture tex;
 
 bool initialise() {
 	//hide cursor
@@ -34,14 +35,16 @@ bool load_content() {
   geom.add_buffer(colours, BUFFER_INDEXES::COLOUR_BUFFER);
   */
 
-  //create cube
-	meshes["cube"] = mesh(geometry_builder::create_box());
+  //create floating island
+	meshes["floating island"] = mesh(geometry("models/floating island.obj"));
 
-// Load in shaders
-	eff.add_shader("shaders/basic.vert", GL_VERTEX_SHADER);
-	eff.add_shader("shaders/basic.frag", GL_FRAGMENT_SHADER);
+	// Load in shaders
+	eff.add_shader("shaders/shader.vert", GL_VERTEX_SHADER);
+	eff.add_shader("shaders/shader.frag", GL_FRAGMENT_SHADER);
 	// Build effect
 	eff.build();
+
+	tex = texture("textures/isllandUV.png");
 
 	// Set camera properties
 	cam.set_position(vec3(0.0f, 0.0f, 10.0f));
@@ -55,7 +58,7 @@ bool update(float delta_time) {
 
 	//ratio of pixels to rotation
 	static double ratio_width = quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
-	static double ratio_height = (quarter_pi<float>() 
+	static double ratio_height = (quarter_pi<float>()
 		* (static_cast<float>(renderer::get_screen_height()) / static_cast<float>(renderer::get_screen_width())))
 		/ static_cast<float>(renderer::get_screen_height());
 
@@ -130,16 +133,16 @@ bool render() {
 	glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
 	// Render geometry
 	renderer::render(geom);*/
-
+	mesh m = meshes["floating island"];
 	//create MVP matrix
-	mat4 M = meshes["cube"].get_transform().get_transform_matrix();
+	mat4 M = m.get_transform().get_transform_matrix();
 	auto V = cam.get_view();
 	auto P = cam.get_projection();
 	auto MVP = P*V*M;
 	//set MVP matrix uniform
 	glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
 
-	renderer::render(meshes["cube"]);
+	renderer::render(m);
 
 	return true;
 }
