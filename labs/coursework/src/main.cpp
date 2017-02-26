@@ -11,7 +11,7 @@ free_camera cam;
 map<string, mesh> meshes;
 double cursor_x = 0;
 double cursor_y = 0;
-texture tex;
+map<string, texture> tex;
 texture shade;
 
 bool initialise() {
@@ -24,35 +24,35 @@ bool initialise() {
 }
 
 bool load_content() {
-	/*
-  // Create triangle data
-  vector<vec3> positions{vec3(0.0f, 1.0f, 0.0f), vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f)
 
-  };
-  // Colours
-  vector<vec4> colours{vec4(1.0f, 0.0f, 0.0f, 1.0f), vec4(1.0f, 0.0f, 0.0f, 1.0f), vec4(1.0f, 0.0f, 0.0f, 1.0f)};
-  // Add to the geometry
-  geom.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
-  geom.add_buffer(colours, BUFFER_INDEXES::COLOUR_BUFFER);
-  */
-	 
-  //create floating island   
+	//create floating island 
 	meshes["floating island"] = mesh(geometry("models/floating island.obj"));
+	//create castle
+	meshes["castle"] = mesh(geometry("models/castle.obj"));
+
+	//transform castle
+	meshes["castle"].get_transform().scale = vec3(0.3);
+	meshes["castle"].get_transform().translate(vec3(-1.0f, 5.8f,0.0f));
+	meshes["castle"].get_transform().rotate(vec3(0.0f, half_pi<float>(), 0.0f));
 
 	// Load in shaders
 	eff.add_shader("shaders/shader.vert", GL_VERTEX_SHADER);
 	eff.add_shader("shaders/shader.frag", GL_FRAGMENT_SHADER);
-	// Build effect
-	eff.build(); 
+	// Build effect 
+	eff.build();
 
-	tex = texture("textures/isllandUV.png");
+	//set floating island texture
+	tex["floating island"] = texture("textures/isllandUV.png");
+	//set castle texture
+	tex["castle"] = texture("textures/castle.png");
 
+	//set shade data
 	vector<vec4> shade_data{ vec4(0.25f,0.25f,0.25f,1.0f), vec4(0.5f,0.5f,0.5f,1.0f), vec4(0.75f,0.75f, 0.75f, 1.0f), vec4(1.0f) };
-
+	//set shade texture
 	shade = texture(shade_data, 4, 1, false, false);
 
 	// Set camera properties
-	cam.set_position(vec3(0.0f, 0.0f, 10.0f));
+	cam.set_position(vec3(0.0f, 0.0f, 30.0f));
 	cam.set_target(vec3(0.0f, 0.0f, 0.0f));
 	cam.set_projection(quarter_pi<float>(), renderer::get_screen_aspect(), 0.1f, 1000.0f);
 	return true;
@@ -86,7 +86,7 @@ bool update(float delta_time) {
 	cam.rotate(delta_x, -delta_y);
 
 	//set speed
-	float speed = 5.0f * delta_time;
+	float speed = 10.0f * delta_time;
 
 	//use keyboard to move camera - WASD
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_W))
@@ -128,33 +128,30 @@ bool update(float delta_time) {
 bool render() {
 	// Bind effect
 	renderer::bind(eff);
-	/*
-	// Create MVP matrix
-	mat4 M(1.0f);
-	auto V = cam.get_view();
-	auto P = cam.get_projection();
-	auto MVP = P * V * M;
-	// Set MVP matrix uniform
-	glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
-	// Render geometry
-	renderer::render(geom);*/
-	mesh m = meshes["floating island"];
+
 	//create MVP matrix
-	mat4 M = m.get_transform().get_transform_matrix();
+	mat4 M = meshes["floating island"].get_transform().get_transform_matrix();
 	auto V = cam.get_view();
 	auto P = cam.get_projection();
-	auto MVP = P*V*M;
-	//set MVP matrix uniform
-	glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
+	auto VP = P*V;
 
-	renderer::bind(tex, 0);
-	renderer::bind(shade, 1);
+	//loop through meshes
+	for (auto e : meshes)
+	{
+		mesh m = e.second;
 
-	glUniform1i(eff.get_uniform_location("tex"), 0);
-	glUniform1i(eff.get_uniform_location("shade_tex"), 1);
+		//set MVP matrix uniform 
+		glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(VP * (M * m.get_transform().get_transform_matrix())));
 
-	renderer::render(m);
+		renderer::bind(tex[e.first], 0);
+		renderer::bind(shade, 1);
 
+		glUniform1i(eff.get_uniform_location("tex"), 0);
+		glUniform1i(eff.get_uniform_location("shade_tex"), 1);
+		glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE, value_ptr(m.get_transform().get_normal_matrix()));
+
+		renderer::render(m);
+	}
 	return true;
 }
 
