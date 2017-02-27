@@ -5,7 +5,6 @@ using namespace std;
 using namespace graphics_framework;
 using namespace glm;
 
-geometry geom;
 effect eff;
 free_camera cam;
 map<string, mesh> meshes;
@@ -13,6 +12,8 @@ double cursor_x = 0;
 double cursor_y = 0;
 map<string, texture> tex;
 texture shade;
+directional_light light;
+material mat;
 
 bool initialise() {
 	//hide cursor
@@ -25,37 +26,63 @@ bool initialise() {
 
 bool load_content() {
 
-	//create floating island 
+	//create floating islands
 	meshes["floating island"] = mesh(geometry("models/floating island.obj"));
-//create castle
-meshes["castle"] = mesh(geometry("models/castle.obj"));
+	meshes["island2"] = mesh(geometry("models/island2.obj"));
+	meshes["island3"] = mesh(geometry("models/island3.obj"));
 
-//transform castle
-meshes["castle"].get_transform().scale = vec3(0.3);
-meshes["castle"].get_transform().translate(vec3(-1.0f, 5.8f, 0.0f));
-meshes["castle"].get_transform().rotate(vec3(0.0f, half_pi<float>(), 0.0f));
+	//create castle
+	meshes["castle"] = mesh(geometry("models/castle.obj"));
 
-// Load in shaders
-eff.add_shader("shaders/shader.vert", GL_VERTEX_SHADER);
-eff.add_shader("shaders/shader.frag", GL_FRAGMENT_SHADER);
-// Build effect 
-eff.build();
+	//translate island2
+	meshes["island2"].get_transform().translate(vec3(50.0f, 0.0f, -100.0f));
+	//translate island3
+	meshes["island3"].get_transform().translate(vec3(-50.0f, 0.0f, -100.0f));
+	//transform castle
+	meshes["castle"].get_transform().scale = vec3(0.3);
+	meshes["castle"].get_transform().translate(vec3(-1.0f, 5.8f, 0.0f));
+	meshes["castle"].get_transform().rotate(vec3(0.0f, half_pi<float>(), 0.0f));
 
-//set floating island texture
-tex["floating island"] = texture("textures/isllandUV.png");
-//set castle texture
-tex["castle"] = texture("textures/castle.png");
+	// Load in shaders
+	eff.add_shader("shaders/shader.vert", GL_VERTEX_SHADER);
+	eff.add_shader("shaders/shader.frag", GL_FRAGMENT_SHADER);
+	eff.add_shader("shaders/directional.frag", GL_FRAGMENT_SHADER);
+	eff.add_shader("shaders/spot.frag", GL_FRAGMENT_SHADER);
+	eff.add_shader("shaders/point.frag", GL_FRAGMENT_SHADER);
+	// Build effect 
+	eff.build();
 
-//set shade data
-vector<vec4> shade_data{ vec4(0.25f,0.25f,0.25f,1.0f), vec4(0.5f,0.5f,0.5f,1.0f), vec4(0.75f,0.75f, 0.75f, 1.0f), vec4(1.0f) };
-//set shade texture
-shade = texture(shade_data, 4, 1, false, false);
+	//set floating island texture
+	tex["floating island"] = texture("textures/isllandUV.png");
+	//set castle texture
+	tex["castle"] = texture("textures/castle.png");
+	//set island2 texture
+	tex["island2"] = texture("textures/island2.png");
+	//set island3 texture
+	tex["island3"] = texture("textures/island3.png");
 
-// Set camera properties
-cam.set_position(vec3(0.0f, 0.0f, 30.0f));
-cam.set_target(vec3(0.0f, 0.0f, 0.0f));
-cam.set_projection(quarter_pi<float>(), renderer::get_screen_aspect(), 0.1f, 1000.0f);
-return true;
+	//set light
+	light.set_ambient_intensity(vec4(0.3f));
+	light.set_light_colour(vec4(1.0f));
+	light.set_direction(normalize(vec3(-1.0, 0.5, 0.0)));
+
+	//set default material
+	mat.set_emissive(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+	mat.set_diffuse(vec4(1.0f));
+	mat.set_shininess(50.0f);
+	mat.set_specular(vec4(1.0f));
+
+	//set shade data
+	vector<vec4> shade_data{ vec4(0.25f,0.25f,0.25f,1.0f), vec4(0.5f,0.5f,0.5f,1.0f), vec4(0.75f,0.75f, 0.75f, 1.0f), vec4(1.0f) };
+	//set shade texture
+	shade = texture(shade_data, 4, 1, false, false);
+
+	// Set camera properties
+	cam.set_position(vec3(3.0f, 5.0f, 30.0f));
+	cam.set_target(vec3(0.0f, 0.0f, 0.0f));
+	cam.set_projection(quarter_pi<float>(), renderer::get_screen_aspect(), 0.1f, 1000.0f);
+
+	return true;
 }
 
 void FreeCam(float delta_time)
@@ -85,8 +112,13 @@ void FreeCam(float delta_time)
 	cam.rotate(delta_x, -delta_y);
 
 	//set speed
-	float speed = 10.0f * delta_time;
+	float speed = 50.0f * delta_time;
 
+	//speed up
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT_CONTROL))
+	{
+		speed = 100.0f * delta_time;
+	}
 	//use keyboard to move camera - WASD
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_W))
 	{
@@ -112,8 +144,7 @@ void FreeCam(float delta_time)
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT_SHIFT))
 	{
 		cam.move(vec3(0.0f, -speed, 0.0f));
-	}
-
+	}	
 	// Update the camera
 	cam.update(delta_time);
 
@@ -123,16 +154,33 @@ void FreeCam(float delta_time)
 }
 
 bool update(float delta_time) {
-	static float i = 1;
+	//calculate total time
+	static float total_time = 0;
+	total_time += delta_time;
 
-	if (meshes["floating island"].get_transform().position.y>= 1 || meshes["floating island"].get_transform().position.y < 0)
+	//rotate and bob islands
+	meshes["floating island"].get_transform().rotate(vec3(0.0f, delta_time * 0.5, 0.0f));
+	meshes["floating island"].get_transform().translate(vec3(0.0f, sin(total_time) * 0.02, 0.0f));
+	meshes["island2"].get_transform().rotate(vec3(0.0f, delta_time * 0.3f, 0.0f));
+	meshes["island2"].get_transform().translate(vec3(0.0f, sin(total_time - 1.5f) * 0.02, 0.0f));
+	meshes["island3"].get_transform().rotate(vec3(0.0f, delta_time * 0.7f, 0.0f));
+	meshes["island3"].get_transform().translate(vec3(0.0f, sin(total_time - 2.5f) * 0.02, 0.0f));
+
+	//reset camera position
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_0))
 	{
-		i *= -1;
+		cam.set_position(vec3(3.0f, 5.0f, 30.0f));
+		cam.set_pitch(0.0f);
+		cam.set_yaw(0.0f);
 	}
-	meshes["floating island"].get_transform().rotate(vec3(0.0f, delta_time, 0.0f));
-	meshes["floating island"].get_transform().translate(vec3(0.0f, i * delta_time, 0.0f));
-	cout << (meshes["floating island"].get_transform().position.y) << endl;
+	//reset camera orientation
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_R))
+	{
+		cam.set_pitch(0.0f);
+		cam.set_yaw(0.0f);
+	}
 
+	//control camera using free cam
 	FreeCam(delta_time);
 
 	return true;
@@ -153,20 +201,41 @@ bool render() {
 		auto MVP = P*V*M;
 		//set MVP matrix uniform 
 		glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
+		//set model matrix
+		glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE, value_ptr(M));
 
+		glUniform1i(eff.get_uniform_location("shade_tex"), 1);
+		//set normal matrix
+		glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE, value_ptr(m.get_transform().get_normal_matrix()));
+
+		//pu castle in transform hierarchy of floating island
 		if (e.first == "castle")
 		{
 			auto VP = P * V;
 			M = meshes["floating island"].get_transform().get_transform_matrix() * M;
 			glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(VP * M));
+			//set castle model matrix
+			glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE, value_ptr(M));
+			//set normal matrix
+			glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE, value_ptr(meshes["floating island"].get_transform().get_normal_matrix() * m.get_transform().get_normal_matrix()));
 		}
 
+		//bind textures
 		renderer::bind(tex[e.first], 0);
 		renderer::bind(shade, 1);
 
+		//set texture uniform
 		glUniform1i(eff.get_uniform_location("tex"), 0);
+		//set shade uniform
 		glUniform1i(eff.get_uniform_location("shade_tex"), 1);
+		//set normal matrix
 		glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE, value_ptr(m.get_transform().get_normal_matrix()));
+		//bind light
+		renderer::bind(light, "light");
+		//bind material
+		renderer::bind(mat, "mat");
+		//set eye position to camera position
+		glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam.get_position()));
 
 		renderer::render(m);
 	}
