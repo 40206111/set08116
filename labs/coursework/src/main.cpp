@@ -27,40 +27,39 @@ bool load_content() {
 
 	//create floating island 
 	meshes["floating island"] = mesh(geometry("models/floating island.obj"));
-	//create castle
-	meshes["castle"] = mesh(geometry("models/castle.obj"));
+//create castle
+meshes["castle"] = mesh(geometry("models/castle.obj"));
 
-	//transform castle
-	meshes["castle"].get_transform().scale = vec3(0.3);
-	meshes["castle"].get_transform().translate(vec3(-1.0f, 5.8f,0.0f));
-	meshes["castle"].get_transform().rotate(vec3(0.0f, half_pi<float>(), 0.0f));
+//transform castle
+meshes["castle"].get_transform().scale = vec3(0.3);
+meshes["castle"].get_transform().translate(vec3(-1.0f, 5.8f, 0.0f));
+meshes["castle"].get_transform().rotate(vec3(0.0f, half_pi<float>(), 0.0f));
 
-	// Load in shaders
-	eff.add_shader("shaders/shader.vert", GL_VERTEX_SHADER);
-	eff.add_shader("shaders/shader.frag", GL_FRAGMENT_SHADER);
-	// Build effect 
-	eff.build();
+// Load in shaders
+eff.add_shader("shaders/shader.vert", GL_VERTEX_SHADER);
+eff.add_shader("shaders/shader.frag", GL_FRAGMENT_SHADER);
+// Build effect 
+eff.build();
 
-	//set floating island texture
-	tex["floating island"] = texture("textures/isllandUV.png");
-	//set castle texture
-	tex["castle"] = texture("textures/castle.png");
+//set floating island texture
+tex["floating island"] = texture("textures/isllandUV.png");
+//set castle texture
+tex["castle"] = texture("textures/castle.png");
 
-	//set shade data
-	vector<vec4> shade_data{ vec4(0.25f,0.25f,0.25f,1.0f), vec4(0.5f,0.5f,0.5f,1.0f), vec4(0.75f,0.75f, 0.75f, 1.0f), vec4(1.0f) };
-	//set shade texture
-	shade = texture(shade_data, 4, 1, false, false);
+//set shade data
+vector<vec4> shade_data{ vec4(0.25f,0.25f,0.25f,1.0f), vec4(0.5f,0.5f,0.5f,1.0f), vec4(0.75f,0.75f, 0.75f, 1.0f), vec4(1.0f) };
+//set shade texture
+shade = texture(shade_data, 4, 1, false, false);
 
-	// Set camera properties
-	cam.set_position(vec3(0.0f, 0.0f, 30.0f));
-	cam.set_target(vec3(0.0f, 0.0f, 0.0f));
-	cam.set_projection(quarter_pi<float>(), renderer::get_screen_aspect(), 0.1f, 1000.0f);
-	return true;
+// Set camera properties
+cam.set_position(vec3(0.0f, 0.0f, 30.0f));
+cam.set_target(vec3(0.0f, 0.0f, 0.0f));
+cam.set_projection(quarter_pi<float>(), renderer::get_screen_aspect(), 0.1f, 1000.0f);
+return true;
 }
 
-
-bool update(float delta_time) {
-
+void FreeCam(float delta_time)
+{
 	//ratio of pixels to rotation
 	static double ratio_width = quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
 	static double ratio_height = (quarter_pi<float>()
@@ -121,6 +120,20 @@ bool update(float delta_time) {
 	//update cursot position
 	cursor_x = current_x;
 	cursor_y = current_y;
+}
+
+bool update(float delta_time) {
+	static float i = 1;
+
+	if (meshes["floating island"].get_transform().position.y>= 1 || meshes["floating island"].get_transform().position.y < 0)
+	{
+		i *= -1;
+	}
+	meshes["floating island"].get_transform().rotate(vec3(0.0f, delta_time, 0.0f));
+	meshes["floating island"].get_transform().translate(vec3(0.0f, i * delta_time, 0.0f));
+	cout << (meshes["floating island"].get_transform().position.y) << endl;
+
+	FreeCam(delta_time);
 
 	return true;
 }
@@ -129,19 +142,24 @@ bool render() {
 	// Bind effect
 	renderer::bind(eff);
 
-	//create MVP matrix
-	mat4 M = meshes["floating island"].get_transform().get_transform_matrix();
-	auto V = cam.get_view();
-	auto P = cam.get_projection();
-	auto VP = P*V;
-
 	//loop through meshes
 	for (auto e : meshes)
 	{
 		mesh m = e.second;
-
+		//create MVP matrix
+		mat4 M = m.get_transform().get_transform_matrix();
+		auto V = cam.get_view();
+		auto P = cam.get_projection();
+		auto MVP = P*V*M;
 		//set MVP matrix uniform 
-		glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(VP * (M * m.get_transform().get_transform_matrix())));
+		glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
+
+		if (e.first == "castle")
+		{
+			auto VP = P * V;
+			M = meshes["floating island"].get_transform().get_transform_matrix() * M;
+			glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(VP * M));
+		}
 
 		renderer::bind(tex[e.first], 0);
 		renderer::bind(shade, 1);
