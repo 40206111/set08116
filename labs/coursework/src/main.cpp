@@ -112,7 +112,9 @@ void FreeCam(float delta_time)
 	cam.rotate(delta_x, -delta_y);
 
 	//set speed
-	float speed = 50.0f * delta_time;
+	float speed = 30.0f * delta_time;
+	//set speed for up and down movement
+	float hspeed = 20.0f * delta_time;
 
 	//speed up
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT_CONTROL))
@@ -139,11 +141,11 @@ void FreeCam(float delta_time)
 	//move camera up and down - space, shift
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_SPACE))
 	{
-		cam.move(vec3(0.0f, speed, 0.0f));
+		cam.move(vec3(0.0f, hspeed, 0.0f));
 	}
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT_SHIFT))
 	{
-		cam.move(vec3(0.0f, -speed, 0.0f));
+		cam.move(vec3(0.0f, -hspeed, 0.0f));
 	}	
 	// Update the camera
 	cam.update(delta_time);
@@ -228,8 +230,6 @@ bool render() {
 		glUniform1i(eff.get_uniform_location("tex"), 0);
 		//set shade uniform
 		glUniform1i(eff.get_uniform_location("shade_tex"), 1);
-		//set normal matrix
-		glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE, value_ptr(m.get_transform().get_normal_matrix()));
 		//bind light
 		renderer::bind(light, "light");
 		//bind material
