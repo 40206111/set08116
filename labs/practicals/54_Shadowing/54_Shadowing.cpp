@@ -178,7 +178,7 @@ bool render() {
 		// *********************************
 		// Set lightMVP uniform, using:
 		 //Model matrix from m
-
+		
 		// viewmatrix from the shadow map
 		auto viewMatrix = shadow.get_view();
 		// Multiply together with LightProjectionMat

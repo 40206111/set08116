@@ -16,6 +16,7 @@ directional_light light;
 point_light point;
 spot_light spot;
 material mat; 
+shadow_map shadow;
 
 bool initialise() {
 	//hide cursor
@@ -27,6 +28,9 @@ bool initialise() {
 }
 
 bool load_content() {
+
+	//create shadow map
+	shadow = shadow_map(renderer::get_screen_width(), renderer::get_screen_height());
 
 	//create floating islands
 	meshes["floating island"] = mesh(geometry("models/floating island.obj"));
@@ -206,7 +210,7 @@ void LightControl()
 		 odown = true;
 		 if (spot_on)
 		 {
-			 spot.set_light_colour(vec4(1.0f));
+			 spot.set_light_colour(vec4(1.0f, 0.0f, 0.0f, 1.0f));
 		 }
 		 if (!spot_on)
 		 {
@@ -278,7 +282,6 @@ bool update(float delta_time) {
 }
 
 bool render() {
-
 	// Bind effect
 	renderer::bind(eff);
 
@@ -311,8 +314,6 @@ bool render() {
 			//set normal matrix
 			glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE, value_ptr(meshes["floating island"].get_transform().get_normal_matrix() * m.get_transform().get_normal_matrix()));
 		}
-
-
 		/*if (e.first == "floating island")
 		{
 			vec4 light_pos = MVP * vec4(point.get_position(), 1.0f);
@@ -335,6 +336,8 @@ bool render() {
 		renderer::bind(mat, "mat");
 		//set eye position to camera position
 		glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam.get_position()));
+
+		renderer::render(m);
 	}
 	return true;
 }
