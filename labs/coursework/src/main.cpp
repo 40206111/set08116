@@ -13,7 +13,9 @@ double cursor_y = 0;
 map<string, texture> tex;
 texture shade;
 directional_light light;
-material mat;
+point_light point;
+spot_light spot;
+material mat; 
 
 bool initialise() {
 	//hide cursor
@@ -49,6 +51,7 @@ bool load_content() {
 	eff.add_shader("shaders/directional.frag", GL_FRAGMENT_SHADER);
 	eff.add_shader("shaders/spot.frag", GL_FRAGMENT_SHADER);
 	eff.add_shader("shaders/point.frag", GL_FRAGMENT_SHADER);
+	eff.add_shader("shaders/shadow.frag", GL_FRAGMENT_SHADER);
 	// Build effect 
 	eff.build();
 
@@ -62,20 +65,33 @@ bool load_content() {
 	tex["island3"] = texture("textures/island3.png");
 
 	//set light
-	light.set_ambient_intensity(vec4(0.3f));
+	light.set_ambient_intensity(vec4(0.1f));
 	light.set_light_colour(vec4(1.0f));
 	light.set_direction(normalize(vec3(-1.0, 0.5, 0.0)));
+
+	//set spot light
+	spot.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+	spot.set_position(vec3(0.0f, 25.0f, 0.0f)); 
+	spot.set_direction(normalize(-spot.get_position()));
+	spot.set_range(20.0f); 
+	spot.set_power(10.0f);
+	spot.set_constant_attenuation(0.1f);
+
+	//set point light
+	point.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+	point.set_position(vec3(-6.0f, 3.0f, 0.0f)); 
+	point.set_range(5.0f);
 
 	//set default material
 	mat.set_emissive(vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	mat.set_diffuse(vec4(1.0f));
-	mat.set_shininess(50.0f);
-	mat.set_specular(vec4(1.0f));
+	mat.set_shininess(10.0f); 
+	mat.set_specular(vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
-	//set shade data
-	vector<vec4> shade_data{ vec4(0.25f,0.25f,0.25f,1.0f), vec4(0.5f,0.5f,0.5f,1.0f), vec4(0.75f,0.75f, 0.75f, 1.0f), vec4(1.0f) };
+	//set shade data 
+	vector<vec4> shade_data{ vec4(0.0f, 0.0f, 0.0f, 1.0f), vec4(0.25f,0.25f,0.25f,1.0f), vec4(0.5f,0.5f,0.5f,1.0f), vec4(0.75f,0.75f, 0.75f, 1.0f), vec4(1.0f) };
 	//set shade texture
-	shade = texture(shade_data, 4, 1, false, false);
+	shade = texture(shade_data, 5, 1, false, false); 
 
 	// Set camera properties
 	cam.set_position(vec3(3.0f, 5.0f, 30.0f));
@@ -153,6 +169,76 @@ void FreeCam(float delta_time)
 	//update cursot position
 	cursor_x = current_x;
 	cursor_y = current_y;
+} 
+
+void LightControl()
+{
+	static bool point_on = false;
+	static bool spot_on = false;
+	static bool dir_on = true;
+	static bool pdown = false;
+	static bool odown = false;
+	static bool ldown = false;
+
+
+	//toggle point light
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_P) == GLFW_RELEASE && !pdown)
+	{
+		pdown = true;
+		if (point_on)
+		{
+			point.set_light_colour(vec4(1.0f));
+		}
+		if (!point_on)
+		{
+			point.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+		}
+		point_on = !point_on;
+	}
+	 if (glfwGetKey(renderer::get_window(), GLFW_KEY_P) == GLFW_PRESS && pdown)
+	{
+		pdown = false;
+	}
+
+	 //toggle spot light
+	 if (glfwGetKey(renderer::get_window(), GLFW_KEY_O) == GLFW_RELEASE && !odown)
+	 {
+		 odown = true;
+		 if (spot_on)
+		 {
+			 spot.set_light_colour(vec4(1.0f));
+		 }
+		 if (!spot_on)
+		 {
+			 spot.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+		 }
+		 spot_on = !spot_on;
+	 }
+	 if (glfwGetKey(renderer::get_window(), GLFW_KEY_O) == GLFW_PRESS && odown)
+	 {
+		 odown = false;
+	 }
+
+	 //toggle directional light
+	 if (glfwGetKey(renderer::get_window(), GLFW_KEY_L) == GLFW_RELEASE && !ldown)
+	 {
+		 ldown = true;
+		 if (dir_on)
+		 {
+			 light.set_light_colour(vec4(1.0f));
+		 }
+		 if (!dir_on)
+		 {
+			 light.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+		 }
+		 dir_on = !dir_on;
+	 }
+	 if (glfwGetKey(renderer::get_window(), GLFW_KEY_L) == GLFW_PRESS && ldown)
+	 {
+		 ldown = false;
+	 }
+
+
 }
 
 bool update(float delta_time) {
@@ -182,6 +268,9 @@ bool update(float delta_time) {
 		cam.set_yaw(0.0f);
 	}
 
+	//control light
+	LightControl();
+
 	//control camera using free cam
 	FreeCam(delta_time);
 
@@ -189,6 +278,7 @@ bool update(float delta_time) {
 }
 
 bool render() {
+
 	// Bind effect
 	renderer::bind(eff);
 
@@ -222,6 +312,13 @@ bool render() {
 			glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE, value_ptr(meshes["floating island"].get_transform().get_normal_matrix() * m.get_transform().get_normal_matrix()));
 		}
 
+
+		/*if (e.first == "floating island")
+		{
+			vec4 light_pos = MVP * vec4(point.get_position(), 1.0f);
+			point.set_position(vec3(light_pos));
+		}*/
+
 		//bind textures
 		renderer::bind(tex[e.first], 0);
 		renderer::bind(shade, 1);
@@ -230,14 +327,14 @@ bool render() {
 		glUniform1i(eff.get_uniform_location("tex"), 0);
 		//set shade uniform
 		glUniform1i(eff.get_uniform_location("shade_tex"), 1);
-		//bind light
+		//bind lights 
 		renderer::bind(light, "light");
+		renderer::bind(spot, "spot");
+		renderer::bind(point, "point");
 		//bind material
 		renderer::bind(mat, "mat");
 		//set eye position to camera position
 		glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam.get_position()));
-
-		renderer::render(m);
 	}
 	return true;
 }

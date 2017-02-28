@@ -125,7 +125,7 @@ bool render() {
 	// We could just use the Camera's projection, 
 	// but that has a narrower FoV than the cone of the spot light, so we would get clipping.
 	// so we have yo create a new Proj Mat with a field of view of 90.
-	mat4 LightProjectionMat = perspective<float>(90.f, renderer::get_screen_aspect(), 0.1f, 1000.f);
+	mat4 LightProjectionMat = perspective<float>(90.0f, renderer::get_screen_aspect(), 0.1f, 1000.0f);
 
 	// Bind shader
 	renderer::bind(shadow_eff);
