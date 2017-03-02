@@ -64,7 +64,7 @@ uniform sampler1D shade_tex;
 //directional light information
 uniform directional_light light;
 //spot light information
-uniform spot_light spot;
+uniform spot_light spot[3];
 //point light information
 uniform point_light point;
 //position of the eye
@@ -94,25 +94,28 @@ layout(location = 0) out vec4 colour;
 
 void main() {
 
-//calculate shadow factor
-float shadow = calculate_shadow(shadow_map, light_space_pos);
+	//calculate shadow factor
+	float shadow = calculate_shadow(shadow_map, light_space_pos);
 
-//calculate view direction
-vec3 view_dir = normalize(eye_pos - vertex_pos);
-//sample texture
-vec4 tex_colour = texture(tex, tex_coord);
+	//calculate view direction
+	vec3 view_dir = normalize(eye_pos - vertex_pos);
+	//sample texture
+	vec4 tex_colour = texture(tex, tex_coord);
 
-vec3 norm = calc_normal(transformed_normal, tangent_out, binormal_out, normal_map, tex_coord);
+	vec3 norm = calc_normal(transformed_normal, tangent_out, binormal_out, normal_map, tex_coord);
 
-//calculate directional light colour
-colour += calculate_direction(light, mat, norm, view_dir, tex_colour, shade_tex);
+	//calculate directional light colour
+	colour += calculate_direction(light, mat, norm, view_dir, tex_colour, shade_tex);
 
-//calculate spot light colour
-colour += calculate_spot(spot, mat, vertex_pos, norm,  view_dir, tex_colour, shade_tex);
+	//calculate spot light colour
+	for (int i = 0; i < 3; i++)
+	{
+		colour += calculate_spot(spot[i], mat, vertex_pos, norm,  view_dir, tex_colour, shade_tex);
+	}
 
-//calculate point light colour
-colour += calculate_point(point, mat, vertex_pos, norm, view_dir, tex_colour, shade_tex);
+	//calculate point light colour
+	colour += calculate_point(point, mat, vertex_pos, norm, view_dir, tex_colour, shade_tex);
 
-colour *= shadow;
-colour.a = 1.0f;
+	colour *= shadow;
+	colour.a = 1.0f;
 }

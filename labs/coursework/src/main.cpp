@@ -16,7 +16,7 @@ texture shade;
 map<string, texture> normal_map;
 directional_light light;
 point_light point;
-spot_light spot;
+vector<spot_light> spot(3);
 shadow_map shadow;
 int use_cam = 0;
 
@@ -46,7 +46,7 @@ bool load_content() {
   // translate island2
   meshes["island2"].get_transform().translate(vec3(50.0f, 0.0f, -100.0f));
   // translate island3
-  meshes["island3"].get_transform().translate(vec3(-50.0f, 0.0f, -100.0f));
+  meshes["island3"].get_transform().translate(vec3(-50.0f, 0.0f, -90.0f));
   // transform castle
   meshes["castle"].get_transform().scale = vec3(0.3);
   meshes["castle"].get_transform().translate(vec3(-1.0f, 5.8f, 0.0f));
@@ -81,14 +81,26 @@ bool load_content() {
   light.set_ambient_intensity(vec4(0.1f));
   light.set_light_colour(vec4(1.0f));
   light.set_direction(normalize(vec3(-1.0, 0.5, 0.0)));
+  vector<vec4> spotcol{
+      vec4(1.0f), vec4(1.0f, 0.0f, 0.0f, 1.0f), vec4(0.0f, 0.0f, 1.0f, 1.0f),
+      vec4(1.0f, 0.0f, 1.0f, 1.0f), vec4(0.0f, 1.0f, 1.0f, 1.0f)};
+  spot[0].set_position(vec3(0.0f, 25.0f, 0.0f));
+  spot[1].set_position(vec3(60.0f, 13.0f, -106.0f));
+  spot[2].set_position(vec3(-51.0f, 22.0f, -89.0f));
+  default_random_engine e;
+  uniform_int_distribution<int> dist(0, 4);
 
-  // set spot light
-  spot.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
-  spot.set_position(vec3(0.0f, 25.0f, 0.0f));
-  spot.set_direction(normalize(-spot.get_position()));
-  spot.set_range(20.0f);
-  spot.set_power(10.0f);
-  spot.set_constant_attenuation(0.1f);
+  for (int i = 0; i < 3; i++) {
+    // set spot light
+    spot[i].set_light_colour(vec4(1.0f));
+    cout << "x: " << spot[i].get_light_colour().x
+         << " y: " << spot[i].get_light_colour().y
+         << " z: " << spot[i].get_light_colour().z << endl;
+    spot[i].set_direction(normalize(vec3(0.0f, -1.0f, 0.0f)));
+    spot[i].set_range(20.0f);
+    spot[i].set_power(10.0f);
+    spot[i].set_constant_attenuation(0.1f);
+  }
 
   // set point light
   point.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
@@ -100,15 +112,15 @@ bool load_content() {
   mat.set_emissive(vec4(0.0f, 0.0f, 0.0f, 1.0f));
   mat.set_diffuse(vec4(1.0f));
   mat.set_shininess(50.0f);
-  mat.set_specular(vec4(0.0f, 0.8f, 0.2f, 1.0f));
-  
-  //set meshes specific material
+  // mat.set_specular(vec4(0.0f, 0.8f, 0.2f, 1.0f));
+  mat.set_specular(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+  // set meshes specific material
   meshes["floating island"].set_material(mat);
   meshes["island2"].set_material(mat);
   meshes["island3"].set_material(mat);
-  mat.set_specular(vec4(0.0f, 0.0f, 0.0f, 1.0f));
-  meshes["castle"].set_material(mat);
 
+  meshes["castle"].set_material(mat);
 
   // set shade data
   vector<vec4> shade_data{vec4(0.0f, 0.0f, 0.0f, 1.0f),
@@ -181,7 +193,7 @@ void FreeCam(float delta_time) {
   // speed up
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT_CONTROL)) {
     speed = 100.0f * delta_time;
-	hspeed = 50.0f * delta_time;
+    hspeed = 50.0f * delta_time;
   }
   // use keyboard to move camera - WASD
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_W)) {
@@ -211,15 +223,14 @@ void FreeCam(float delta_time) {
   cursor_y = current_y;
 }
 
-void scroll(GLFWwindow* window, double x, double y) {
-	// change camera distance - scroll wheel
-	if (y > 0) {
-		ABcam.move(y * -1.0f);
-	}
-	if (y < 0) {
-		ABcam.move(y * -1.0f);
-	}
-
+void scroll(GLFWwindow *window, double x, double y) {
+  // change camera distance - scroll wheel
+  if (y > 0) {
+    ABcam.move(y * -1.0f);
+  }
+  if (y < 0) {
+    ABcam.move(y * -1.0f);
+  }
 }
 
 void Arc_ball_cam(float delta_time) {
@@ -235,7 +246,7 @@ void Arc_ball_cam(float delta_time) {
     if (i >= 3) {
       i = 0;
     }
-	ABcam.set_target(targets[i].get_transform().position);
+    ABcam.set_target(targets[i].get_transform().position);
   }
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_N) == GLFW_RELEASE && down) {
     up = true;
@@ -267,7 +278,7 @@ void Arc_ball_cam(float delta_time) {
   // rotate camera
   ABcam.rotate(-delta_y, delta_x);
 
- glfwSetScrollCallback(renderer::get_window(), scroll);
+  glfwSetScrollCallback(renderer::get_window(), scroll);
   // update camera
   ABcam.update(delta_time);
 
@@ -283,6 +294,9 @@ void LightControl() {
   static bool pdown = false;
   static bool odown = false;
   static bool ldown = false;
+  static vector<vec4> tempSpotCol{spot[0].get_light_colour(),
+                                  spot[1].get_light_colour(),
+                                  spot[2].get_light_colour()};
 
   // toggle point light
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_P) == GLFW_RELEASE &&
@@ -305,10 +319,17 @@ void LightControl() {
       !odown) {
     odown = true;
     if (spot_on) {
-      spot.set_light_colour(vec4(1.0f, 0.0f, 0.0f, 1.0f));
+      for (int i = 0; i < 3; i++) {
+        spot[i].set_light_colour(tempSpotCol[i]);
+      }
     }
     if (!spot_on) {
-      spot.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+      for (int i = 0; i < 3; i++) {
+        tempSpotCol[i] = spot[i].get_light_colour();
+      }
+      for (int i = 0; i < 3; i++) {
+        spot[i].set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+      }
     }
     spot_on = !spot_on;
   }
@@ -340,15 +361,15 @@ bool update(float delta_time) {
 
   // rotate and bob islands
   meshes["floating island"].get_transform().rotate(
-      vec3(0.0f, delta_time * 0.5, 0.0f));
+          vec3(0.0f, delta_time * 0.5, 0.0f));
   meshes["floating island"].get_transform().translate(
-      vec3(0.0f, sin(total_time) * 0.02, 0.0f));
+          vec3(0.0f, sin(total_time) * 0.02, 0.0f));
   meshes["island2"].get_transform().rotate(vec3(0.0f, delta_time * 0.3f, 0.0f));
   meshes["island2"].get_transform().translate(
-      vec3(0.0f, sin(total_time - 1.5f) * 0.02, 0.0f));
+          vec3(0.0f, sin(total_time - 1.5f) * 0.02, 0.0f));
   meshes["island3"].get_transform().rotate(vec3(0.0f, delta_time * 0.7f, 0.0f));
   meshes["island3"].get_transform().translate(
-      vec3(0.0f, sin(total_time - 2.5f) * 0.02, 0.0f));
+          vec3(0.0f, sin(total_time - 2.5f) * 0.02, 0.0f));
 
   // control light
   LightControl();
@@ -368,6 +389,70 @@ bool update(float delta_time) {
   default:
     // control camera using free cam
     FreeCam(delta_time);
+  }
+
+  static float range = 20.0f;
+  float speed = 10.0f * delta_time;
+  static float constant = 0.0f;
+
+  // *********************************
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_Y)) {
+    spot[2].set_position(vec3(spot[2].get_position().x,
+                              spot[2].get_position().y,
+                              spot[2].get_position().z - speed));
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_H)) {
+    spot[2].set_position(vec3(spot[2].get_position().x,
+                              spot[2].get_position().y,
+                              spot[2].get_position().z + speed));
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_G)) {
+    spot[2].set_position(vec3(spot[2].get_position().x - speed,
+                              spot[2].get_position().y,
+                              spot[2].get_position().z));
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_J)) {
+    spot[2].set_position(vec3(spot[2].get_position().x + speed,
+                              spot[2].get_position().y,
+                              spot[2].get_position().z));
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_U)) {
+    spot[2].set_position(vec3(spot[2].get_position().x,
+                              spot[2].get_position().y + speed,
+                              spot[2].get_position().z));
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_T)) {
+    spot[2].set_position(vec3(spot[2].get_position().x,
+                              spot[2].get_position().y - speed,
+                              spot[2].get_position().z));
+  }
+  // O and P to change range
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_K)) {
+    range += 10.0f * delta_time;
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_F)) {
+    range -= 10.0f * delta_time;
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_M)) {
+    constant -= 1.0f * delta_time;
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_B)) {
+    constant += 1.0f * delta_time;
+  }
+  // *********************************
+  cout << "x: " << spot[2].get_position().x
+       << " y: " << spot[2].get_position().y
+       << " z: " << spot[2].get_position().z << endl;
+  // Set range
+  spot[2].set_range(range);
+  spot[2].set_constant_attenuation(constant);
+  cout << "RANGE: " << range << " BRIGHTNESS: " << constant << endl;
+
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_5)) {
+    constant = 0.1;
+  }
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_6)) {
+    range = 20.0f;
   }
 
   return true;
@@ -427,11 +512,10 @@ bool render() {
               m.get_transform().get_normal_matrix()));
       renderer::bind(normal_map["bricks"], 2);
     }
-    /*if (e.first == "floating island")
-    {
-            vec4 light_pos = MVP * vec4(-6.0f, 3.0f, 0.0f, 1.0f);
-            point.set_position(vec3(light_pos));
-    }*/
+   if (e.first == "floating island") {
+      vec4 light_pos = M * vec4(-6.0f, 3.0f, 0.0f, 1.0f);
+      point.set_position(vec3(light_pos)/(light_pos.w));
+    }
 
     // bind textures
     renderer::bind(tex[e.first], 0);
