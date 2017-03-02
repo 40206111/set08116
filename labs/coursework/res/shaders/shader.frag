@@ -54,6 +54,8 @@ vec4 calculate_direction(in directional_light light, in material mat, in vec3 tr
 vec4 calculate_spot(in spot_light spot, in material mat, in vec3 position, in vec3 view_dir, in vec3 transformed_normal, in vec4 tex_colour, in sampler1D shade);
 vec4 calculate_point(in point_light point, in material mat, in vec3 vertex_pos, in vec3 transformed_normal, in vec3 view_dir, in vec4 tex_colour, in sampler1D shade);
 float calculate_shadow(in sampler2D shadow_map, in vec4 light_space_pos);
+vec3 calc_normal(in vec3 transformed_normal, in vec3 tangent, in vec3 binormal, in sampler2D normal_map, in vec2 tex_coord);
+
 
 //texture uniform
 uniform sampler2D tex;
@@ -71,6 +73,8 @@ uniform vec3 eye_pos;
 uniform material mat;
 //shadow map
 uniform sampler2D shadow_map;
+// Normal map to sample from
+uniform sampler2D normal_map;
 
 //incoming position
 layout(location = 0) in vec3 vertex_pos;
@@ -80,6 +84,10 @@ layout(location = 1) in vec2 tex_coord;
 layout(location = 2) in vec3 transformed_normal;
 //incoming light space position
 layout(location = 3) in vec4 light_space_pos;
+// Incoming tangent
+layout(location = 4) in vec3 tangent_out;
+// Incoming binormal
+layout(location = 5) in vec3 binormal_out;
 
 //outgoing colour
 layout(location = 0) out vec4 colour;
@@ -93,14 +101,17 @@ float shadow = calculate_shadow(shadow_map, light_space_pos);
 vec3 view_dir = normalize(eye_pos - vertex_pos);
 //sample texture
 vec4 tex_colour = texture(tex, tex_coord);
+
+vec3 norm = calc_normal(transformed_normal, tangent_out, binormal_out, normal_map, tex_coord);
+
 //calculate directional light colour
-colour += calculate_direction(light, mat, transformed_normal, view_dir, tex_colour, shade_tex);
+colour += calculate_direction(light, mat, norm, view_dir, tex_colour, shade_tex);
 
 //calculate spot light colour
-colour += calculate_spot(spot, mat, vertex_pos, transformed_normal,  view_dir, tex_colour, shade_tex);
+colour += calculate_spot(spot, mat, vertex_pos, norm,  view_dir, tex_colour, shade_tex);
 
 //calculate point light colour
-colour += calculate_point(point, mat, vertex_pos, transformed_normal, view_dir, tex_colour, shade_tex);
+colour += calculate_point(point, mat, vertex_pos, norm, view_dir, tex_colour, shade_tex);
 
 colour *= shadow;
 colour.a = 1.0f;
