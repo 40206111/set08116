@@ -19,7 +19,7 @@ point_light point;
 spot_light spot;
 material mat;
 shadow_map shadow;
-int use_cam = 1;
+int use_cam = 0;
 
 bool initialise() {
 	//hide cursor
@@ -120,6 +120,22 @@ bool load_content() {
 
 void FreeCam(float delta_time)
 {
+
+	//reset camera position
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_C))
+	{
+		cam.set_position(vec3(3.0f, 5.0f, 30.0f));
+		cam.set_pitch(0.0f);
+		cam.set_yaw(0.0f);
+	}
+	//reset camera orientation
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_R))
+	{
+		cam.set_pitch(0.0f);
+		cam.set_yaw(0.0f);
+	}
+
+
 	//ratio of pixels to rotation
 	static double ratio_width = quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
 	static double ratio_height = (quarter_pi<float>()
@@ -190,8 +206,25 @@ void FreeCam(float delta_time)
 
 void Arc_ball_cam(float delta_time)
 {
-	static mesh &target = meshes["floating island"];
-
+	static std::array<mesh, 3> targets{ meshes["floating island"],  meshes["island2"], meshes["island3"]};
+	static int i = 0;
+	static bool up = true;
+	static bool down = false;
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_N) == GLFW_PRESS && up)
+	{
+		up = false;
+		down = true;
+		i++;
+		if (i >= 3)
+		{
+			i = 0;
+		}
+		ABcam.set_target(targets[i].get_transform().position);
+		cout << i << endl;
+	} if (glfwGetKey(renderer::get_window(), GLFW_KEY_N) == GLFW_RELEASE && down)
+	{
+		up = true;
+	}
 	static double ratio_width = quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
 	static double ratio_height = (quarter_pi<float>()
 		* (static_cast<float>(renderer::get_screen_height()) / static_cast<float>(renderer::get_screen_width())))
@@ -315,20 +348,6 @@ bool update(float delta_time) {
 	meshes["island2"].get_transform().translate(vec3(0.0f, sin(total_time - 1.5f) * 0.02, 0.0f));
 	meshes["island3"].get_transform().rotate(vec3(0.0f, delta_time * 0.7f, 0.0f));
 	meshes["island3"].get_transform().translate(vec3(0.0f, sin(total_time - 2.5f) * 0.02, 0.0f));
-
-	//reset camera position
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_0))
-	{
-		cam.set_position(vec3(3.0f, 5.0f, 30.0f));
-		cam.set_pitch(0.0f);
-		cam.set_yaw(0.0f);
-	}
-	//reset camera orientation
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_R))
-	{
-		cam.set_pitch(0.0f);
-		cam.set_yaw(0.0f);
-	}
 
 	//control light
 	LightControl();
