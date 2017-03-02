@@ -17,7 +17,6 @@ map<string, texture> normal_map;
 directional_light light;
 point_light point;
 spot_light spot;
-material mat;
 shadow_map shadow;
 int use_cam = 0;
 
@@ -96,11 +95,20 @@ bool load_content() {
   point.set_position(vec3(-6.0f, 3.0f, 0.0f));
   point.set_range(5.0f);
 
+  material mat;
   // set default material
   mat.set_emissive(vec4(0.0f, 0.0f, 0.0f, 1.0f));
   mat.set_diffuse(vec4(1.0f));
-  mat.set_shininess(10.0f);
+  mat.set_shininess(50.0f);
+  mat.set_specular(vec4(0.0f, 0.8f, 0.2f, 1.0f));
+  
+  //set meshes specific material
+  meshes["floating island"].set_material(mat);
+  meshes["island2"].set_material(mat);
+  meshes["island3"].set_material(mat);
   mat.set_specular(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+  meshes["castle"].set_material(mat);
+
 
   // set shade data
   vector<vec4> shade_data{vec4(0.0f, 0.0f, 0.0f, 1.0f),
@@ -166,13 +174,14 @@ void FreeCam(float delta_time) {
   cam.rotate(delta_x, -delta_y);
 
   // set speed
-  float speed = 30.0f * delta_time;
+  float speed = 10.0f * delta_time;
   // set speed for up and down movement
-  float hspeed = 20.0f * delta_time;
+  float hspeed = 5.0f * delta_time;
 
   // speed up
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT_CONTROL)) {
     speed = 100.0f * delta_time;
+	hspeed = 50.0f * delta_time;
   }
   // use keyboard to move camera - WASD
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_W)) {
@@ -202,6 +211,17 @@ void FreeCam(float delta_time) {
   cursor_y = current_y;
 }
 
+void scroll(GLFWwindow* window, double x, double y) {
+	// change camera distance - scroll wheel
+	if (y > 0) {
+		ABcam.move(y * -1.0f);
+	}
+	if (y < 0) {
+		ABcam.move(y * -1.0f);
+	}
+
+}
+
 void Arc_ball_cam(float delta_time) {
   static std::array<mesh, 3> targets{meshes["floating island"],
                                      meshes["island2"], meshes["island3"]};
@@ -215,11 +235,12 @@ void Arc_ball_cam(float delta_time) {
     if (i >= 3) {
       i = 0;
     }
-    ABcam.set_target(targets[i].get_transform().position);
+	ABcam.set_target(targets[i].get_transform().position);
   }
   if (glfwGetKey(renderer::get_window(), GLFW_KEY_N) == GLFW_RELEASE && down) {
     up = true;
   }
+
   static double ratio_width =
       quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
   static double ratio_height =
@@ -246,14 +267,7 @@ void Arc_ball_cam(float delta_time) {
   // rotate camera
   ABcam.rotate(-delta_y, delta_x);
 
-  // change camera distance - up/down
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_W)) {
-    ABcam.move(-10.0f * delta_time);
-  }
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_S)) {
-    ABcam.move(10.0f * delta_time);
-  }
-
+ glfwSetScrollCallback(renderer::get_window(), scroll);
   // update camera
   ABcam.update(delta_time);
 
@@ -433,7 +447,7 @@ bool render() {
     renderer::bind(spot, "spot");
     renderer::bind(point, "point");
     // bind material
-    renderer::bind(mat, "mat");
+    renderer::bind(m.get_material(), "mat");
     // set eye position to camera position
     glUniform3fv(eff.get_uniform_location("eye_pos"), 1,
                  value_ptr(cam.get_position()));
