@@ -7,14 +7,17 @@ using namespace glm;
 
 effect eff;
 effect shadow_eff;
+effect sky_eff;
 free_camera cam;
 arc_ball_camera ABcam;
+mesh skybox = skybox;
 map<string, mesh> meshes;
 double cursor_x = 0;
 double cursor_y = 0;
 map<string, texture> tex;
 texture shade;
 map<string, texture> normal_map;
+cubemap cube_map;
 directional_light light;
 point_light point;
 vector<spot_light> spot(3);
@@ -39,6 +42,9 @@ bool load_content() {
 	//create plane for viewing shadows
 	meshes["plane"] = mesh(geometry_builder::create_plane());
 
+	//create skybox
+	skybox = mesh(geometry_builder::create_box());
+
 	// create floating islands
 	meshes["floating island"] = mesh(geometry("models/floating island.obj"));
 	meshes["island2"] = mesh(geometry("models/island2.obj"));
@@ -48,6 +54,8 @@ bool load_content() {
 	// create castle
 	meshes["castle"] = mesh(geometry("models/castle.obj"));
 
+	//scale skybox
+	skybox.get_transform().scale = vec3(200.0f);
 	// translate island2
 	meshes["island2"].get_transform().translate(vec3(50.0f, 0.0f, -100.0f));
 	// translate island3
@@ -67,10 +75,17 @@ bool load_content() {
 	eff.add_shader("shaders/normal_map.frag", GL_FRAGMENT_SHADER);
 	// Build effect
 	eff.build();
-
+	
+	//load shadow vert
 	shadow_eff.add_shader("shaders/shadow.vert", GL_VERTEX_SHADER);
-
+	//build shadow effect
 	shadow_eff.build();
+
+	//load skybox shaders
+	sky_eff.add_shader("shaders/skybox.vert", GL_VERTEX_SHADER);
+	sky_eff.add_shader("shaders/skybox.frag", GL_FRAGMENT_SHADER);
+	//build skybox effect
+	sky_eff.build();
 
 	tex["plane"] = texture("textures/blank_normal.png");
 
@@ -87,6 +102,14 @@ bool load_content() {
 	// set normal maps
 	normal_map["bricks"] = texture("textures/castle_normal.png");
 	normal_map["blank"] = texture("textures/blank_normal.png");
+
+	array<string, 6> filenames =
+	{
+		"textures/sahara_ft.jpg", "textures/sahara_bk.jpg", "textures/sahara_up.jpg",
+		"textures/sahara_dn.jpg", "textures/sahara_rt.jpg", "textures/sahara_lf.jpg"
+	};
+	//set cube map
+	cube_map = cubemap(filenames);
 
 	// set light
 	light.set_ambient_intensity(vec4(0.1f));
@@ -228,6 +251,8 @@ void FreeCam(float delta_time) {
 	// Update the camera
 	cam.update(delta_time);
 
+	skybox.get_transform().position = cam.get_position();
+
 	// update cursot position
 	cursor_x = current_x;
 	cursor_y = current_y;
@@ -291,6 +316,8 @@ void Arc_ball_cam(float delta_time) {
 	glfwSetScrollCallback(renderer::get_window(), scroll);
 	// update camera
 	ABcam.update(delta_time);
+
+	skybox.get_transform().position = ABcam.get_position();
 
 	// Update cursor pos
 	cursor_x = current_x;
@@ -388,7 +415,7 @@ bool update(float delta_time) {
 		use_cam = 1;
 	}
 
-	switch (use_cam) {
+	switch (use_cam) { 
 	case 1:
 		// control Arc ball camera
 		Arc_ball_cam(delta_time);
@@ -413,6 +440,26 @@ bool update(float delta_time) {
 }
 
 bool render() {
+
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	glDisable(GL_CULL_FACE);
+	renderer::bind(sky_eff);
+
+	auto M = skybox.get_transform().get_transform_matrix();
+	auto V = cam.get_view();
+	auto P = cam.get_projection();
+	auto MVP = P * V * M;
+
+	glUniformMatrix4fv(sky_eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
+
+	renderer::bind(cube_map, 3);
+	glUniform1i(sky_eff.get_uniform_location("cubemap"), 3);
+	renderer::render(skybox);
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+	glEnable(GL_CULL_FACE);
 
 	auto LP = perspective<float>(half_pi<float>(), renderer::get_screen_aspect(), 0.1f, 1000.0f);
 	auto LV = shadow.get_view();
@@ -457,9 +504,7 @@ bool render() {
 		}
 		mesh m = e.second;
 		// create MVP matrix
-		mat4 M = m.get_transform().get_transform_matrix();
-		auto V = cam.get_view();
-		auto P = cam.get_projection();
+		M = m.get_transform().get_transform_matrix();
 
 		switch (use_cam) {
 		case 1:
@@ -470,7 +515,7 @@ bool render() {
 			break;
 		}
 
-		auto MVP = P * V * M;
+		MVP = P * V * M;
 
 		// set MVP matrix uniform
 		glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE,

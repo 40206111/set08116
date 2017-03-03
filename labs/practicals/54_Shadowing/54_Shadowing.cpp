@@ -184,23 +184,21 @@ bool render() {
 		// Multiply together with LightProjectionMat
 		LightProjectionMat = M * viewMatrix;
 		// Set uniform
-		glUniformMatrix4fv(shadow_eff.get_uniform_location("lightMVP"), 1, GL_FALSE, value_ptr(LightProjectionMat));
+		glUniformMatrix4fv(main_eff.get_uniform_location("lightMVP"), 1, GL_FALSE, value_ptr(LightProjectionMat));
 		// Bind material
 		renderer::bind(m.get_material(), "mat");
 		// Bind spot light
 		renderer::bind(spot, "spot");
 		// Bind texture
 		renderer::bind(tex, 0);
-		auto vv = shadow_eff.get_uniform_location("tex");
 		// Set tex uniform
-		glUniform1i(shadow_eff.get_uniform_location("tex"), 0);
+		glUniform1i(main_eff.get_uniform_location("tex"), 0);
 		// Set eye position
-		auto va = shadow_eff.get_uniform_location("eye_pos");
-		glUniform3fv(shadow_eff.get_uniform_location("eye_pos"), 1, value_ptr(cam.get_position()));
+		glUniform3fv(main_eff.get_uniform_location("eye_pos"), 1, value_ptr(cam.get_position()));
 		// Bind shadow map texture - use texture unit 1
 		renderer::bind(shadow.buffer->get_depth(), 1);
 		// Set the shadow_map uniform
-		glUniform1i(shadow_eff.get_uniform_location("shadow_map"), 1);
+		glUniform1i(main_eff.get_uniform_location("shadow_map"), 1);
 		// Render mesh
 		renderer::render(m); 
 		// *********************************
