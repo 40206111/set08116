@@ -398,12 +398,15 @@ bool update(float delta_time) {
 		FreeCam(delta_time);
 	}
 
-	//translate plane on y axis
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_UP)) {
-		meshes["plane"].get_transform().translate(vec3(0.0f, 10 * delta_time, 0.0f));
-	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_DOWN)) {
-		meshes["plane"].get_transform().translate(vec3(0.0f, -10 * delta_time, 0.0f));
+	if (shadow_on)
+	{
+		//translate plane on y axis
+		if (glfwGetKey(renderer::get_window(), GLFW_KEY_UP)) {
+			meshes["plane"].get_transform().translate(vec3(0.0f, 10 * delta_time, 0.0f));
+		}
+		if (glfwGetKey(renderer::get_window(), GLFW_KEY_DOWN)) {
+			meshes["plane"].get_transform().translate(vec3(0.0f, -10 * delta_time, 0.0f));
+		}
 	}
 
 	return true;
