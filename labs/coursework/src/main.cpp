@@ -35,13 +35,15 @@ bool load_content() {
 	// create shadow map
 	shadow =
 		shadow_map(renderer::get_screen_width(), renderer::get_screen_height());
+	//create plane for viewing shadows
+	meshes["plane"] = mesh(geometry_builder::create_plane());
 
 	// create floating islands
-	meshes["plane"] = mesh(geometry_builder::create_plane());
 	meshes["floating island"] = mesh(geometry("models/floating island.obj"));
 	meshes["island2"] = mesh(geometry("models/island2.obj"));
 	meshes["island3"] = mesh(geometry("models/island3.obj"));
-
+	
+	meshes["plane"].get_transform().translate(vec3(0.0f, -25.0f, 0.0f));
 	// create castle
 	meshes["castle"] = mesh(geometry("models/castle.obj"));
 
@@ -89,11 +91,8 @@ bool load_content() {
 	light.set_ambient_intensity(vec4(0.1f));
 	light.set_light_colour(vec4(1.0f));
 	light.set_direction(normalize(vec3(-1.0, 0.5, 0.0)));
-	vector<vec4> spotcol{
-		vec4(1.0f), vec4(1.0f, 0.0f, 0.0f, 1.0f), vec4(0.0f, 0.0f, 1.0f, 1.0f),
-		vec4(1.0f, 0.0f, 1.0f, 1.0f), vec4(0.0f, 1.0f, 1.0f, 1.0f) };
 	spot[0].set_position(vec3(0.0f, 25.0f, 0.0f));
-	spot[1].set_position(vec3(60.0f, 13.0f, -106.0f));
+	spot[1].set_position(vec3(50.0f, 30.0f, -101.0f));
 	spot[2].set_position(vec3(-51.0f, 22.0f, -89.0f));
 	default_random_engine e;
 	uniform_int_distribution<int> dist(0, 4);
@@ -302,9 +301,6 @@ void LightControl() {
 	static bool pdown = false;
 	static bool odown = false;
 	static bool ldown = false;
-	static vector<vec4> tempSpotCol{ spot[0].get_light_colour(),
-									spot[1].get_light_colour(),
-									spot[2].get_light_colour() };
 
 	// toggle point light
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_P) == GLFW_RELEASE &&
@@ -328,13 +324,10 @@ void LightControl() {
 		odown = true;
 		if (spot_on) {
 			for (int i = 0; i < 3; i++) {
-				spot[i].set_light_colour(tempSpotCol[i]);
+				spot[i].set_light_colour(vec4(1.0f));
 			}
 		}
 		if (!spot_on) {
-			for (int i = 0; i < 3; i++) {
-				tempSpotCol[i] = spot[i].get_light_colour();
-			}
 			for (int i = 0; i < 3; i++) {
 				spot[i].set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
 			}
@@ -360,6 +353,7 @@ void LightControl() {
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_L) == GLFW_PRESS && ldown) {
 		ldown = false;
 	}
+
 }
 
 bool update(float delta_time) {
@@ -399,68 +393,12 @@ bool update(float delta_time) {
 		FreeCam(delta_time);
 	}
 
-	static float range = 20.0f;
-	float speed = 10.0f * delta_time;
-	static float constant = 0.0f;
-
-	// *********************************
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_Y)) {
-		spot[2].set_position(vec3(spot[2].get_position().x,
-			spot[2].get_position().y,
-			spot[2].get_position().z - speed));
-	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_H)) {
-		spot[2].set_position(vec3(spot[2].get_position().x,
-			spot[2].get_position().y,
-			spot[2].get_position().z + speed));
-	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_G)) {
-		spot[2].set_position(vec3(spot[2].get_position().x - speed,
-			spot[2].get_position().y,
-			spot[2].get_position().z));
-	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_J)) {
-		spot[2].set_position(vec3(spot[2].get_position().x + speed,
-			spot[2].get_position().y,
-			spot[2].get_position().z));
-	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_U)) {
-		spot[2].set_position(vec3(spot[2].get_position().x,
-			spot[2].get_position().y + speed,
-			spot[2].get_position().z));
-	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_T)) {
-		spot[2].set_position(vec3(spot[2].get_position().x,
-			spot[2].get_position().y - speed,
-			spot[2].get_position().z));
-	}
-	// O and P to change range
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_K)) {
-		range += 10.0f * delta_time;
-	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_F)) {
-		range -= 10.0f * delta_time;
-	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_M)) {
-		constant -= 1.0f * delta_time;
-	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_B)) {
-		constant += 1.0f * delta_time;
-	}
-	// *********************************
-	cout << "x: " << spot[2].get_position().x
-		<< " y: " << spot[2].get_position().y
-		<< " z: " << spot[2].get_position().z << endl;
-	// Set range
-	spot[2].set_range(range);
-	spot[2].set_constant_attenuation(constant);
-	cout << "RANGE: " << range << " BRIGHTNESS: " << constant << endl;
-
+	//translate plane on y axis
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_UP)) {
-		meshes["plane"].get_transform().translate(vec3(0.0f, speed, 0.0f));
+		meshes["plane"].get_transform().translate(vec3(0.0f, 10 * delta_time, 0.0f));
 	}
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_DOWN)) {
-		meshes["plane"].get_transform().translate(vec3(0.0f, -speed, 0.0f));
+		meshes["plane"].get_transform().translate(vec3(0.0f, -10 * delta_time, 0.0f));
 	}
 
 	return true;
@@ -543,12 +481,20 @@ bool render() {
 					m.get_transform().get_normal_matrix()));
 			renderer::bind(normal_map["bricks"], 2);
 		}
+
 		if (e.first == "floating island") {
 			vec4 light_pos = M * vec4(-6.0f, 3.0f, 0.0f, 1.0f);
 			point.set_position(vec3(light_pos) / (light_pos.w));
 			light_pos = M * vec4(0.0f, 25.0f, 0.0f, 1.0f);
 			spot[0].set_position(vec3(light_pos) / (light_pos.w));
-
+		}
+		if (e.first == "island2") {
+			vec4 light_pos = M * vec4(0.0f, 30.0f, 0.0f, 1.0f);
+			spot[1].set_position(vec3(light_pos) / (light_pos.w));
+		}
+		if (e.first == "island3") {
+			vec4 light_pos = M * vec4(0.0f, 22.0f, 0.0f, 1.0f);
+			spot[2].set_position(vec3(light_pos) / (light_pos.w));
 		}
 		// set model matrix
 		glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE,
