@@ -20,6 +20,7 @@ point_light point;
 vector<spot_light> spot(3);
 shadow_map shadow;
 int use_cam = 0;
+bool shadow_on = false;
 
 bool initialise() {
 	// hide cursor
@@ -119,7 +120,6 @@ bool load_content() {
 	mat.set_emissive(vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	mat.set_diffuse(vec4(1.0f));
 	mat.set_shininess(50.0f);
-	// mat.set_specular(vec4(0.0f, 0.8f, 0.2f, 1.0f));
 	mat.set_specular(vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
 	// set meshes specific material
@@ -128,6 +128,9 @@ bool load_content() {
 	meshes["island3"].set_material(mat);
 
 	meshes["castle"].set_material(mat);
+	mat.set_specular(vec4(0.0f, 0.8f, 0.2f, 1.0f));
+	mat.set_diffuse(vec4(1.0f, 0.0f, 0.5f, 1.0f));
+	meshes["plane"].set_material(mat);
 
 	// set shade data
 	vector<vec4> shade_data{ vec4(0.0f, 0.0f, 0.0f, 1.0f),
@@ -326,11 +329,13 @@ void LightControl() {
 			for (int i = 0; i < 3; i++) {
 				spot[i].set_light_colour(vec4(1.0f));
 			}
+			shadow_on = true;
 		}
 		if (!spot_on) {
 			for (int i = 0; i < 3; i++) {
 				spot[i].set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
 			}
+			shadow_on = false;
 		}
 		spot_on = !spot_on;
 	}
@@ -406,39 +411,47 @@ bool update(float delta_time) {
 
 bool render() {
 
-	renderer::bind(shadow_eff);
-
-	renderer::set_render_target(shadow);
-	shadow.light_dir = spot[0].get_direction();
-	shadow.light_position = spot[0].get_position();
 	auto LP = perspective<float>(half_pi<float>(), renderer::get_screen_aspect(), 0.1f, 1000.0f);
 	auto LV = shadow.get_view();
-	glCullFace(GL_FRONT);
-	glClear(GL_DEPTH_BUFFER_BIT);
 
-	for (auto &e : meshes)
+	if (shadow_on)
 	{
-		auto m = e.second;
-		mat4 M = m.get_transform().get_transform_matrix();
+		renderer::bind(shadow_eff);
 
-		if (e.first == "castle")
+		renderer::set_render_target(shadow);
+		shadow.light_dir = spot[0].get_direction();
+		shadow.light_position = spot[0].get_position();
+		glCullFace(GL_FRONT);
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+		for (auto &e : meshes)
 		{
-			M = meshes["floating island"].get_transform().get_transform_matrix() * M;
+			auto m = e.second;
+			mat4 M = m.get_transform().get_transform_matrix();
+
+			if (e.first == "castle")
+			{
+				M = meshes["floating island"].get_transform().get_transform_matrix() * M;
+			}
+
+			glUniformMatrix4fv(shadow_eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(LP * LV * M));
+
+			renderer::render(m);
 		}
 
-		glUniformMatrix4fv(shadow_eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(LP * LV * M));
+		glCullFace(GL_BACK);
+		renderer::set_render_target();
 
-		renderer::render(m);
 	}
-
-	glCullFace(GL_BACK);
-	renderer::set_render_target();
-
 	// Bind effect
 	renderer::bind(eff);
 
 	// loop through meshes
 	for (auto e : meshes) {
+		if (e.first == "plane" && !shadow_on)
+		{
+			return true;
+		}
 		mesh m = e.second;
 		// create MVP matrix
 		mat4 M = m.get_transform().get_transform_matrix();
@@ -522,7 +535,6 @@ bool render() {
 		// set eye position to camera position
 		glUniform3fv(eff.get_uniform_location("eye_pos"), 1,
 			value_ptr(cam.get_position()));
-
 		renderer::render(m);
 	}
 	return true;
