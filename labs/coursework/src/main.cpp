@@ -105,8 +105,8 @@ bool load_content() {
 
 	array<string, 6> filenames =
 	{
-		"textures/sahara_ft.jpg", "textures/sahara_bk.jpg", "textures/sahara_up.jpg",
-		"textures/sahara_dn.jpg", "textures/sahara_rt.jpg", "textures/sahara_lf.jpg"
+		"textures/front.png", "textures/back.png", "textures/up.png", 
+		"textures/down.png", "textures/right.png", "textures/left.png"
 	};
 	//set cube map
 	cube_map = cubemap(filenames);
