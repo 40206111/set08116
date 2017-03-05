@@ -146,8 +146,8 @@ bool load_content() {
   meshes["floating island"].set_material(mat);
   meshes["island2"].set_material(mat);
   meshes["island3"].set_material(mat);
-
   meshes["castle"].set_material(mat);
+  //set specular and diffuse of plane
   mat.set_specular(vec4(0.0f, 0.8f, 0.2f, 1.0f));
   mat.set_diffuse(vec4(1.0f, 0.0f, 0.5f, 1.0f));
   meshes["plane"].set_material(mat);
