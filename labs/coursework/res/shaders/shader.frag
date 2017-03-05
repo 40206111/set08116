@@ -1,121 +1,128 @@
 #version 440
 
-//define directional light
+// define directional light
 #ifndef DIRECTIONAL_LIGHT
-#define DIRECTIONAL-LIGHT
+#define DIRECTIONAL -LIGHT
 struct directional_light {
-	vec4 ambient_intensity;
-	vec4 light_colour;
-	vec3 light_dir;
+  vec4 ambient_intensity;
+  vec4 light_colour;
+  vec3 light_dir;
 };
 #endif
 
-//define spotlight
+// define spotlight
 #ifndef SPOT_LIGHT
 #define SPOT_LIGHT
-struct spot_light
-{
-	vec4 light_colour;
-	vec3 position;
-	vec3 direction;
-	float constant;
-	float linear;
-	float quadratic;
-	float power;
+struct spot_light {
+  vec4 light_colour;
+  vec3 position;
+  vec3 direction;
+  float constant;
+  float linear;
+  float quadratic;
+  float power;
 };
 #endif
 
-//define point light
+// define point light
 #ifndef POINT_LIGHT
 #define POINT_LIGHT
-struct point_light
-{
-	vec4 light_colour;
-	vec3 position;
-	float constant;
-	float linear;
-	float quadratic;
+struct point_light {
+  vec4 light_colour;
+  vec3 position;
+  float constant;
+  float linear;
+  float quadratic;
 };
 #endif
 
-//define material
+// define material
 #ifndef MATERIAL
 #define MATERIAL
 struct material {
-	vec4 emissive;
-	vec4 diffuse_reflection;
-	vec4 specular_reflection;
-	float shininess;
-}; 
+  vec4 emissive;
+  vec4 diffuse_reflection;
+  vec4 specular_reflection;
+  float shininess;
+};
 #endif
 
-//Forward declarations of used functions
-vec4 calculate_direction(in directional_light light, in material mat, in vec3 transformed_normal, in vec3 view_dir, in vec4 tex_colour, in sampler1D shade);
-vec4 calculate_spot(in spot_light spot, in material mat, in vec3 position, in vec3 view_dir, in vec3 transformed_normal, in vec4 tex_colour, in sampler1D shade);
-vec4 calculate_point(in point_light point, in material mat, in vec3 vertex_pos, in vec3 transformed_normal, in vec3 view_dir, in vec4 tex_colour, in sampler1D shade);
+// Forward declarations of used functions
+vec4 calculate_direction(in directional_light light, in material mat,
+                         in vec3 transformed_normal, in vec3 view_dir,
+                         in vec4 tex_colour, in sampler1D shade);
+vec4 calculate_spot(in spot_light spot, in material mat, in vec3 position,
+                    in vec3 view_dir, in vec3 transformed_normal,
+                    in vec4 tex_colour, in sampler1D shade);
+vec4 calculate_point(in point_light point, in material mat, in vec3 vertex_pos,
+                     in vec3 transformed_normal, in vec3 view_dir,
+                     in vec4 tex_colour, in sampler1D shade);
 float calculate_shadow(in sampler2D shadow_map, in vec4 light_space_pos);
-vec3 calc_normal(in vec3 transformed_normal, in vec3 tangent, in vec3 binormal, in sampler2D normal_map, in vec2 tex_coord);
+vec3 calc_normal(in vec3 transformed_normal, in vec3 tangent, in vec3 binormal,
+                 in sampler2D normal_map, in vec2 tex_coord);
 
-
-//texture uniform
+// texture uniform
 uniform sampler2D tex;
-//shade uniform
+// shade uniform
 uniform sampler1D shade_tex;
-//directional light information
+// directional light information
 uniform directional_light light;
-//spot light information
+// spot light information
 uniform spot_light spot[3];
-//point light information
+// point light information
 uniform point_light point;
-//position of the eye
+// position of the eye
 uniform vec3 eye_pos;
-//material of the object being rendered
+// material of the object being rendered
 uniform material mat;
-//shadow map
+// shadow map
 uniform sampler2D shadow_map;
 // Normal map to sample from
 uniform sampler2D normal_map;
 
-//incoming position
+// incoming position
 layout(location = 0) in vec3 vertex_pos;
-//incoming texture coordinate
+// incoming texture coordinate
 layout(location = 1) in vec2 tex_coord;
-//incoming normal
+// incoming normal
 layout(location = 2) in vec3 transformed_normal;
-//incoming light space position
+// incoming light space position
 layout(location = 3) in vec4 light_space_pos;
 // Incoming tangent
 layout(location = 4) in vec3 tangent_out;
 // Incoming binormal
 layout(location = 5) in vec3 binormal_out;
 
-//outgoing colour
+// outgoing colour
 layout(location = 0) out vec4 colour;
 
 void main() {
 
-	//calculate shadow factor
-	float shadow = calculate_shadow(shadow_map, light_space_pos);
+  // calculate shadow factor
+  float shadow = calculate_shadow(shadow_map, light_space_pos);
 
-	//calculate view direction
-	vec3 view_dir = normalize(eye_pos - vertex_pos);
-	//sample texture
-	vec4 tex_colour = texture(tex, tex_coord);
+  // calculate view direction
+  vec3 view_dir = normalize(eye_pos - vertex_pos);
+  // sample texture
+  vec4 tex_colour = texture(tex, tex_coord);
 
-	vec3 norm = calc_normal(transformed_normal, tangent_out, binormal_out, normal_map, tex_coord);
+  vec3 norm = calc_normal(transformed_normal, tangent_out, binormal_out,
+                          normal_map, tex_coord);
 
-	//calculate directional light colour
-	colour += calculate_direction(light, mat, norm, view_dir, tex_colour, shade_tex);
+  // calculate directional light colour
+  colour +=
+      calculate_direction(light, mat, norm, view_dir, tex_colour, shade_tex);
 
-	//calculate spot light colour
-	for (int i = 0; i < 3; i++)
-	{
-		colour += calculate_spot(spot[i], mat, vertex_pos, norm,  view_dir, tex_colour, shade_tex);
-	}
+  // calculate spot light colour
+  for (int i = 0; i < 3; i++) {
+    colour += calculate_spot(spot[i], mat, vertex_pos, norm, view_dir,
+                             tex_colour, shade_tex);
+  }
 
-	//calculate point light colour
-	colour += calculate_point(point, mat, vertex_pos, norm, view_dir, tex_colour, shade_tex);
+  // calculate point light colour
+  colour += calculate_point(point, mat, vertex_pos, norm, view_dir, tex_colour,
+                            shade_tex);
 
-	colour *= shadow;
-	colour.a = 1.0f;
+  colour *= shadow;
+  colour.a = 1.0f;
 }
