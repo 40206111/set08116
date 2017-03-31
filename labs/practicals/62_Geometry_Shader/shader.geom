@@ -45,7 +45,7 @@ void main() {
   // Offset triangle needs to be blue
   for (int i = 0; i < 3; ++i)
   {
-  gl_position = MVP * (gl_in[i].gl_position + vec4(offset, 0));
+  gl_Position = MVP * (gl_in[i].gl_Position + vec4(-offset, 0));
   colour_out = vec4(0.0,0.0,1.0,1.0);
   EmitVertex();
   }
