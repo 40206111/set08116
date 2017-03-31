@@ -73,12 +73,12 @@ void main() {
   // Calculate fog coord
   // - convert from homogeneous
   // - ensure value is positive (we want the size of the value)
-
+  float fog_coord = abs(CS_position.z/CS_position.w);
 
   // Calculate fog factor
-
+  float fog_factor = exp(-fog_density * fog_coord);
 
   // Colour is mix between colour and fog colour based on factor
-
+  colour = mix(colour, fog_colour, fog_factor);
   // *********************************
 }
