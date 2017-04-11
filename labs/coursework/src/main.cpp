@@ -104,9 +104,9 @@ bool load_content() {
   normal_map["blank"] = texture("textures/blank_normal.png");
 
   // skybox filenames
-  array<string, 6> filenames = {"textures/front.png", "textures/back.png",
-                                "textures/up.png",    "textures/down.png",
-                                "textures/right.png", "textures/left.png"};
+  array<string, 6> filenames = {"textures/front2.png", "textures/back2.png",
+                                "textures/up2.png",    "textures/down2.png",
+                                "textures/right2.png", "textures/left2.png"};
   // set cube map
   cube_map = cubemap(filenames);
 
@@ -566,16 +566,18 @@ bool render() {
 
   // Bind effect
   renderer::bind(eff);
-
+  
 
 
   // loop through meshes
   for (auto e : meshes) {
+
     // don't render plane if shadow isn't on
     if (e.first == "plane" && !shadow_on) {
       return true;
     }
-    mesh m = e.second;
+
+    mesh m = e.second;    
     // create MVP matrix
     M = m.get_transform().get_transform_matrix();
 
