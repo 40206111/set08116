@@ -113,7 +113,7 @@ bool load_content() {
   // set light
   light.set_ambient_intensity(vec4(0.1f));
   light.set_light_colour(vec4(1.0f));
-  light.set_direction(normalize(vec3(-1.0, 0.5, 0.0)));
+  light.set_direction(normalize(vec3(-1.0, 0.5, 1.0)));
   spot[0].set_position(vec3(0.0f, 25.0f, 0.0f));
   spot[1].set_position(vec3(50.0f, 30.0f, -101.0f));
   spot[2].set_position(vec3(-51.0f, 22.0f, -89.0f));
@@ -464,97 +464,110 @@ bool update(float delta_time) {
   return true;
 }
 
+void renderSkyBox(mat4 M, mat4 V, mat4 P, mat4 MVP)
+{
+	// disable depth test, depth mask and face culling
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	glDisable(GL_CULL_FACE);
+	// bind sky effect
+	renderer::bind(sky_eff);
+
+	// set MVP uniform
+	glUniformMatrix4fv(sky_eff.get_uniform_location("MVP"), 1, GL_FALSE,
+		value_ptr(MVP));
+
+	// bind cubemap and set uniform
+	renderer::bind(cube_map, 3);
+	glUniform1i(sky_eff.get_uniform_location("cubemap"), 3);
+
+	// render skybox
+	renderer::render(skybox);
+
+	// enable depth test, depth mask and cull face
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+	glEnable(GL_CULL_FACE);
+}
+
+void renderShadows(mat4 M, mat4 V, mat4 P, mat4 MVP)
+{
+	// set light perspective and view
+	auto LP = perspective<float>(half_pi<float>(), renderer::get_screen_aspect(),
+		0.1f, 1000.0f);
+	auto LV = shadow.get_view();
+
+	// bind shadow effect
+	renderer::bind(shadow_eff);
+
+	// sset render target to shadow
+	renderer::set_render_target(shadow);
+	// set shadow light direction and position
+	shadow.light_dir = spot[0].get_direction();
+	shadow.light_position = spot[0].get_position();
+
+	// set cull face to front
+	glCullFace(GL_FRONT);
+	// clear depth buffer
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	// loop through meshes
+	for (auto &e : meshes) {
+		auto m = e.second;
+		// set model matrix
+		mat4 M = m.get_transform().get_transform_matrix();
+
+		// put castle in transform hierarchy of floating island
+		if (e.first == "castle") {
+			M = meshes["floating island"].get_transform().get_transform_matrix() *
+				M;
+		}
+
+		// set MVP uniform for shadow effect
+		glUniformMatrix4fv(shadow_eff.get_uniform_location("MVP"), 1, GL_FALSE,
+			value_ptr(LP * LV * M));
+
+		// render mesh
+		renderer::render(m);
+	}
+
+	// set cull face to back
+	glCullFace(GL_BACK);
+	// set render target to screen
+	renderer::set_render_target();
+}
+
 bool render() {
 
-  // disable depth test, depth mask and face culling
-  glDisable(GL_DEPTH_TEST);
-  glDepthMask(GL_FALSE);
-  glDisable(GL_CULL_FACE);
-  // bind sky effect
-  renderer::bind(sky_eff);
+	// declaire mvp variables
+	mat4 M = skybox.get_transform().get_transform_matrix();
+	mat4 V = cam.get_view();
+	mat4 P = cam.get_projection();
 
-  // set skybox mvp
-  auto M = skybox.get_transform().get_transform_matrix();
-  auto V = cam.get_view();
-  auto P = cam.get_projection();
+	// set V & P to be correct for camera
+	switch (use_cam) {
+	case 1:
+		V = ABcam.get_view();
+		P = ABcam.get_projection();
+		break;
+	default:
+		break;
+	}
 
-  // set V & P to be correct for camera
-  switch (use_cam) {
-  case 1:
-    V = ABcam.get_view();
-    P = ABcam.get_projection();
-    break;
-  default:
-    break;
-  }
+	// calculate MVP
+	mat4 MVP = P * V * M;
 
-  // calculate MVP
-  auto MVP = P * V * M;
+	renderSkyBox(M, V, P, MVP);
 
-  // set MVP uniform
-  glUniformMatrix4fv(sky_eff.get_uniform_location("MVP"), 1, GL_FALSE,
-                     value_ptr(MVP));
+	// render shadows if shadows are on
+	if (shadow_on) {
+		renderShadows(M, V, P, MVP);
+	}
 
-  // bind cubemap and set uniform
-  renderer::bind(cube_map, 3);
-  glUniform1i(sky_eff.get_uniform_location("cubemap"), 3);
-
-  // render skybox
-  renderer::render(skybox);
-
-  // enable depth test, depth mask and cull face
-  glEnable(GL_DEPTH_TEST);
-  glDepthMask(GL_TRUE);
-  glEnable(GL_CULL_FACE);
-
-  // set light perspective and view
-  auto LP = perspective<float>(half_pi<float>(), renderer::get_screen_aspect(),
-                               0.1f, 1000.0f);
-  auto LV = shadow.get_view();
-
-  // render shadows if shadows are on
-  if (shadow_on) {
-    // bind shadow effect
-    renderer::bind(shadow_eff);
-
-    // sset render target to shadow
-    renderer::set_render_target(shadow);
-    // set shadow light direction and position
-    shadow.light_dir = spot[0].get_direction();
-    shadow.light_position = spot[0].get_position();
-
-    // set cull face to front
-    glCullFace(GL_FRONT);
-    // clear depth buffer
-    glClear(GL_DEPTH_BUFFER_BIT);
-
-    // loop through meshes
-    for (auto &e : meshes) {
-      auto m = e.second;
-      // set model matrix
-      mat4 M = m.get_transform().get_transform_matrix();
-
-      // put castle in transform hierarchy of floating island
-      if (e.first == "castle") {
-        M = meshes["floating island"].get_transform().get_transform_matrix() *
-            M;
-      }
-
-      // set MVP uniform for shadow effect
-      glUniformMatrix4fv(shadow_eff.get_uniform_location("MVP"), 1, GL_FALSE,
-                         value_ptr(LP * LV * M));
-
-      // render mesh
-      renderer::render(m);
-    }
-
-    // set cull face to back
-    glCullFace(GL_BACK);
-    // set render target to screen
-    renderer::set_render_target();
-  }
   // Bind effect
   renderer::bind(eff);
+
+
 
   // loop through meshes
   for (auto e : meshes) {
@@ -611,6 +624,10 @@ bool render() {
       vec4 light_pos = M * vec4(0.0f, 22.0f, 0.0f, 1.0f);
       spot[2].set_position(vec3(light_pos) / (light_pos.w));
     }
+	// set light perspective and view
+	auto LP = perspective<float>(half_pi<float>(), renderer::get_screen_aspect(),
+		0.1f, 1000.0f);
+	auto LV = shadow.get_view();
     // set model matrix
     glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE,
                        value_ptr(M));
