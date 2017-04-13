@@ -76,7 +76,7 @@ void main() {
   float fog_coord = abs(CS_position.z/CS_position.w);
 
   // Calculate fog factor
-  float fog_factor = exp(-fog_density * fog_coord);
+  float fog_factor = calculate_fog(fog_coord,fog_colour,fog_start, fog_end, fog_density, fog_type);
 
   // Colour is mix between colour and fog colour based on factor
   colour = mix(colour, fog_colour, fog_factor);
