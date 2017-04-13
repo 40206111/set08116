@@ -44,7 +44,7 @@ void generate_terrain(geometry &geom, const texture &height_map, unsigned int wi
     for (int z = 0; z < height_map.get_height(); ++z) {
       // *********************************
       // Calculate z position of point
-		point.z = -(depth / 1.0f) + (depth_point * static_cast<float>(z));
+		point.z = -(depth / 2.0f) + (depth_point * static_cast<float>(z));
       // *********************************
       // Y position based on red component of height map data
       point.y = data[(z * height_map.get_width()) + x].y * height_scale;
@@ -61,7 +61,7 @@ void generate_terrain(geometry &geom, const texture &height_map, unsigned int wi
       unsigned int top_right = (y * height_map.get_width()) + x + 1;
       // *********************************
 	  unsigned int bottom_left = ((y + 1) * height_map.get_width()) + x;
-	  unsigned int bottom_right = ((y + 1) * height_map.get_height()) + x + 1;
+	  unsigned int bottom_right = ((y + 1) * height_map.get_width()) + x + 1;
       // *********************************
       // Push back indices for triangle 1 (tl,br,bl)
       indices.push_back(top_left);
