@@ -62,7 +62,7 @@ bool load_content() {
   meshes["island3"].get_transform().translate(vec3(-50.0f, 0.0f, -90.0f));
   // transform castle
   meshes["castle"].get_transform().scale = vec3(0.3);
-  meshes["castle"].get_transform().translate(vec3(-1.0f, 5.8f, 0.0f));
+  meshes["castle"].get_transform().translate(vec3(-1.0f, 5.3f, 0.0f));
   meshes["castle"].get_transform().rotate(vec3(0.0f, half_pi<float>(), 0.0f));
 
   // Load in shaders
