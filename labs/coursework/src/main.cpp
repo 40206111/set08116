@@ -537,6 +537,108 @@ void renderShadows(mat4 M, mat4 V, mat4 P, mat4 MVP)
 	renderer::set_render_target();
 }
 
+void renderMeshes(mat4 V, mat4 P)
+{
+	// Bind effect
+	renderer::bind(eff);
+
+	// loop through meshes
+	for (auto e : meshes) {
+
+		// don't render plane if shadow isn't on
+		if (e.first == "plane" && !shadow_on) {
+			break;
+		}
+
+		mesh m = e.second;
+		// create MVP matrix
+		mat4 M = m.get_transform().get_transform_matrix();
+
+		// calculate MVP
+		mat4 MVP = P * V * M;
+
+		// set MVP matrix uniform
+		glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE,
+			value_ptr(MVP));
+
+		glUniform1i(eff.get_uniform_location("shade_tex"), 1);
+		// set normal matrix
+		glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE,
+			value_ptr(m.get_transform().get_normal_matrix()));
+
+		// bind default normal map
+		renderer::bind(normal_map["blank"], 2);
+
+		// put castle in transform hierarchy of floating island
+		if (e.first == "castle") {
+			auto VP = P * V;
+			M = meshes["floating island"].get_transform().get_transform_matrix() * M;
+			glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE,
+				value_ptr(VP * M));
+			// set normal matrix
+			glUniformMatrix3fv(
+				eff.get_uniform_location("N"), 1, GL_FALSE,
+				value_ptr(
+					meshes["floating island"].get_transform().get_normal_matrix() *
+					m.get_transform().get_normal_matrix()));
+			// bind castle normal map
+			renderer::bind(normal_map["bricks"], 2);
+		}
+		// set lights to hierarchy of island they're on
+		if (e.first == "floating island") {
+			vec4 light_pos = M * vec4(-6.0f, 3.0f, 0.0f, 1.0f);
+			point.set_position(vec3(light_pos) / (light_pos.w));
+			light_pos = M * vec4(0.0f, 25.0f, 0.0f, 1.0f);
+			spot[0].set_position(vec3(light_pos) / (light_pos.w));
+		}
+		if (e.first == "island2") {
+			vec4 light_pos = M * vec4(0.0f, 30.0f, 0.0f, 1.0f);
+			spot[1].set_position(vec3(light_pos) / (light_pos.w));
+		}
+		if (e.first == "island3") {
+			vec4 light_pos = M * vec4(0.0f, 22.0f, 0.0f, 1.0f);
+			spot[2].set_position(vec3(light_pos) / (light_pos.w));
+		}
+		// set light perspective and view
+		auto LP = perspective<float>(half_pi<float>(), renderer::get_screen_aspect(),
+			0.1f, 1000.0f);
+		auto LV = shadow.get_view();
+		// set model matrix
+		glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE,
+			value_ptr(M));
+		// set light MVP uniform
+		glUniformMatrix4fv(eff.get_uniform_location("lightMVP"), 1, GL_FALSE,
+			value_ptr(LP * LV * M));
+
+		// bind textures
+		renderer::bind(tex[e.first], 0);
+		renderer::bind(shade, 1);
+		renderer::bind(shadow.buffer->get_depth(), 5);
+
+		// set normal map uniform
+		glUniform1i(eff.get_uniform_location("normal_map"), 2);
+		// set texture uniform
+		glUniform1i(eff.get_uniform_location("tex"), 0);
+		// set shade uniform
+		glUniform1i(eff.get_uniform_location("shade_tex"), 1);
+		// set shadow map uniform
+		glUniform1i(eff.get_uniform_location("shadow_map"), 5);
+
+		// bind lights
+		renderer::bind(light, "light");
+		renderer::bind(spot, "spot");
+		renderer::bind(point, "point");
+		// bind material
+		renderer::bind(m.get_material(), "mat");
+		// set eye position to camera position
+		glUniform3fv(eff.get_uniform_location("eye_pos"), 1,
+			value_ptr(cam.get_position()));
+
+		// render mesh
+		renderer::render(m);
+	}
+}
+
 bool render() {
 
 	// declaire mvp variables
@@ -564,106 +666,8 @@ bool render() {
 		renderShadows(M, V, P, MVP);
 	}
 
-  // Bind effect
-  renderer::bind(eff);
-  
+	renderMeshes(V, P);
 
-
-  // loop through meshes
-  for (auto e : meshes) {
-
-    // don't render plane if shadow isn't on
-    if (e.first == "plane" && !shadow_on) {
-      return true;
-    }
-
-    mesh m = e.second;    
-    // create MVP matrix
-    M = m.get_transform().get_transform_matrix();
-
-    // calculate MVP
-    MVP = P * V * M;
-
-    // set MVP matrix uniform
-    glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE,
-                       value_ptr(MVP));
-
-    glUniform1i(eff.get_uniform_location("shade_tex"), 1);
-    // set normal matrix
-    glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE,
-                       value_ptr(m.get_transform().get_normal_matrix()));
-
-    // bind default normal map
-    renderer::bind(normal_map["blank"], 2);
-
-    // put castle in transform hierarchy of floating island
-    if (e.first == "castle") {
-      auto VP = P * V;
-      M = meshes["floating island"].get_transform().get_transform_matrix() * M;
-      glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE,
-                         value_ptr(VP * M));
-      // set normal matrix
-      glUniformMatrix3fv(
-          eff.get_uniform_location("N"), 1, GL_FALSE,
-          value_ptr(
-              meshes["floating island"].get_transform().get_normal_matrix() *
-              m.get_transform().get_normal_matrix()));
-      // bind castle normal map
-      renderer::bind(normal_map["bricks"], 2);
-    }
-    // set lights to hierarchy of island they're on
-    if (e.first == "floating island") {
-      vec4 light_pos = M * vec4(-6.0f, 3.0f, 0.0f, 1.0f);
-      point.set_position(vec3(light_pos) / (light_pos.w));
-      light_pos = M * vec4(0.0f, 25.0f, 0.0f, 1.0f);
-      spot[0].set_position(vec3(light_pos) / (light_pos.w));
-    }
-    if (e.first == "island2") {
-      vec4 light_pos = M * vec4(0.0f, 30.0f, 0.0f, 1.0f);
-      spot[1].set_position(vec3(light_pos) / (light_pos.w));
-    }
-    if (e.first == "island3") {
-      vec4 light_pos = M * vec4(0.0f, 22.0f, 0.0f, 1.0f);
-      spot[2].set_position(vec3(light_pos) / (light_pos.w));
-    }
-	// set light perspective and view
-	auto LP = perspective<float>(half_pi<float>(), renderer::get_screen_aspect(),
-		0.1f, 1000.0f);
-	auto LV = shadow.get_view();
-    // set model matrix
-    glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE,
-                       value_ptr(M));
-    // set light MVP uniform
-    glUniformMatrix4fv(eff.get_uniform_location("lightMVP"), 1, GL_FALSE,
-                       value_ptr(LP * LV * M));
-
-    // bind textures
-    renderer::bind(tex[e.first], 0);
-    renderer::bind(shade, 1);
-    renderer::bind(shadow.buffer->get_depth(), 5);
-
-    // set normal map uniform
-    glUniform1i(eff.get_uniform_location("normal_map"), 2);
-    // set texture uniform
-    glUniform1i(eff.get_uniform_location("tex"), 0);
-    // set shade uniform
-    glUniform1i(eff.get_uniform_location("shade_tex"), 1);
-    // set shadow map uniform
-    glUniform1i(eff.get_uniform_location("shadow_map"), 5);
-
-    // bind lights
-    renderer::bind(light, "light");
-    renderer::bind(spot, "spot");
-    renderer::bind(point, "point");
-    // bind material
-    renderer::bind(m.get_material(), "mat");
-    // set eye position to camera position
-    glUniform3fv(eff.get_uniform_location("eye_pos"), 1,
-                 value_ptr(cam.get_position()));
-
-    // render mesh
-    renderer::render(m);
-  }
   return true;
 }
 
