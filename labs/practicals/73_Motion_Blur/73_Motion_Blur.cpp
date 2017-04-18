@@ -32,8 +32,8 @@ bool initialise() {
 bool load_content() {
 	// *********************************
 	// Create 2 frame buffers - use screen width and height
-	frames[0] = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
 	frames[1] = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
+	frames[2] = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
 
 	// Create a temp framebuffer
 	temp_frame = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
