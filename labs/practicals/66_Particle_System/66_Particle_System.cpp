@@ -180,8 +180,8 @@ bool render() {
 
   // *********************************
   // Swap front and back buffers
-
-
+  back_buf = abs(front_buf - 1);
+  front_buf = abs(back_buf - 1);
   // *********************************
   return true;
 }

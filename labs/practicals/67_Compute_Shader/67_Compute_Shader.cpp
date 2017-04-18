@@ -43,7 +43,7 @@ bool load_content() {
   glBindVertexArray(vao);
   // *********************************
    //Generate Position Data buffer
-
+  
   // Bind as GL_SHADER_STORAGE_BUFFER
 
   // Send Data to GPU, use GL_DYNAMIC_DRAW

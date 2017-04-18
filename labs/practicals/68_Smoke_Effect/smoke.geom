@@ -36,22 +36,23 @@ void main() {
   EmitVertex();
   // *********************************
   //point VB (0.5, -0.5), Tex (1,0)
-
-
-
-
+  va = position.xy + vec2(0.5, -0.5) * point_size;
+  gl_Position = P * vec4(va, position.zw);
+  tex_coord = vec2(1.0, 0.0);
+  EmitVertex();
 
   // point VD (-0.5, 0.5), Tex (0,1)
-
-
-
+  va = position.xy + vec2(-0.5, 0.5) * point_size;
+  gl_Position = P * vec4(va, position.zw);
+  tex_coord = vec2(0.0, 1.0);
+  EmitVertex();
 
 
   // point VC ((0.5, 0.5), Tex (1,1)
-
-
-
-
+  va = position.xy + vec2(-0.5, 0.5) * point_size;
+  gl_Position = P * vec4(va, position.zw);
+  tex_coord = vec2(1.0, 1.0);
+  EmitVertex();
 
   // *********************************
 
