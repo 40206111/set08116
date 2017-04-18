@@ -91,9 +91,9 @@ bool load_content() {
   meshes["torus"].get_material().set_diffuse(vec4(1.0f, 1.0f, 1.0f, 1.0f));
   meshes["torus"].get_material().set_specular(vec4(1.0f, 1.0f, 1.0f, 1.0f));
   meshes["torus"].get_material().set_shininess(25.0f);
-
+  
   // Load texture
-  tex = texture("textures/checked.gif");
+  tex = texture("textures/isllandUV.png");
 
   // Set lighting values
   light.set_ambient_intensity(vec4(0.3f, 0.3f, 0.3f, 1.0f));
@@ -131,7 +131,7 @@ bool update(float delta_time) {
   if (glfwGetKey(renderer::get_window(), '4')) {
     cam.set_position(vec3(50, 10, -50));
   }
-
+   
   // Rotate the sphere
   meshes["sphere"].get_transform().rotate(vec3(0.0f, half_pi<float>(), 0.0f) * delta_time);
 

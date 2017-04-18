@@ -7,8 +7,12 @@ uniform float inverse_width;
 // 1.0f / screen height
 uniform float inverse_height;
 // Surrounding pixels to sample and their scale
-const vec4 samples[5] = vec4[5](vec4(-1.0, 0.0, 0.0, -2.0/3.0), vec4(0.0, 1.0, 0.0, -2.0/3.0), vec4(1.0, 0.0, 0.0, -2.0/3.0),
-                                vec4(0.0, -1.0, 0.0, -2.0/3.0), vec4(0.0, 0.0, 0.0, 11.0/3.0));
+const vec4 samples[6] = vec4[6](vec4(-1.0, 1.0, 0.0, 1.0), vec4(0.0, 1.0, 0.0, 2.0), vec4(1.0, 1.0, 0.0, 1.0),
+                                vec4(-1.0, -1.0, 0.0, -1.0), vec4(0.0, -1.0, 0.0, -2.0), vec4(1.0, -1.0, 0.0, -1.0));
+
+/*const vec4 samples[5] = vec4[5](vec4(-1.0, 0.0, 0.0, -2.0/3.0), vec4(0.0, 1.0, 0.0, -2.0/3.0), vec4(1.0, 0.0, 0.0, -2.0/3.0),
+vec4(0.0, -1.0, 0.0, -2.0/3.0), vec4(0.0, 0.0, 0.0, 11.0/3.0));*/
+
 // Incoming texture coordinate
 layout(location = 0) in vec2 tex_coord;
 // Outgoing colour
@@ -18,7 +22,7 @@ void main() {
   // Start with colour as black
   colour = vec4(vec3(0.0), 1.0);
     // Loop through each sample vector
-  for (int i = 0; i < 5; ++i)
+  for (int i = 0; i < 6; ++i)
   {
         // Calculate tex coord to sample
 		vec2 uv = tex_coord + vec2(samples[i].x * inverse_width, samples[i].y * inverse_height);
@@ -28,5 +32,12 @@ void main() {
 }
   // Ensure alpha is 1.0
   colour.a = 1.0;
+  if (colour.r <= 0.3 && colour.g <= 0.3 && colour.b <= 0.3)
+  {
+  colour.a = 0.0;
+  } else
+  {
+  colour = vec4(0.0,0.0,0.0,1.0);
+  }
   // *********************************
 }
