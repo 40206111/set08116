@@ -17,15 +17,14 @@ geometry screen_quad;
 bool load_content() {
   // *********************************
   // Create frame buffer - use screen width and height
-
+	frame = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
   // Create screen quad
-
-
-
-
-
-
-  // *********************************
+	vector<vec3> positions{ vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f), vec3(-1.0f, 1.0f, 0.0f),
+		vec3(1.0f, 1.0f, 0.0f) };
+	vector<vec2> tex_coords{ vec2(0.0, 0.0), vec2(1.0f, 0.0f), vec2(0.0f, 1.0f), vec2(1.0f, 1.0f) };
+	screen_quad.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
+	screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
+	screen_quad.set_type(GL_TRIANGLE_STRIP);  // *********************************
 
   // Create plane mesh
   meshes["plane"] = mesh(geometry_builder::create_plane());
@@ -137,16 +136,16 @@ bool update(float delta_time) {
   meshes["sphere"].get_transform().rotate(vec3(0.0f, half_pi<float>(), 0.0f) * delta_time);
 
   cam.update(delta_time);
-
+  
   return true;
 }
 
 bool render() {
   // *********************************
   // Set render target to frame buffer
-
+	renderer::set_render_target(frame);
   // Clear frame
-
+	renderer::clear();
   // *********************************
 
   // Render meshes
@@ -186,23 +185,23 @@ bool render() {
 
   // *********************************
   // Set render target back to the screen
-
+  renderer::set_render_target();
   // Bind Tex effect
-
+  renderer::bind(tex_eff);
   // MVP is now the identity matrix
-
+  mat4 MVP(1.0f);
   // Set MVP matrix uniform
-
+  glUniformMatrix4fv(tex_eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
   // Bind texture from frame buffer
-
+  renderer::bind(frame.get_frame(), 1);
   // Set the tex uniform
-
+  glUniform1i(tex_eff.get_uniform_location("tex"), 1);
   // Set inverse width Uniform
-
+  glUniform1f(tex_eff.get_uniform_location("inverse_width"), 1.0f / renderer::get_screen_width());
   // Set inverse height Uniform
-
+  glUniform1f(tex_eff.get_uniform_location("inverse_height"), 1.0f / renderer::get_screen_height());
   // Render the screen quad
-
+  renderer::render(screen_quad);
   // *********************************
 
   return true;
