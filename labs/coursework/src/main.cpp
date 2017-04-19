@@ -778,14 +778,11 @@ bool render() {
 	renderer::clear();
 	renderSkyBox(M, V, P, MVP);
 	renderSimpleMeshes(V, P);
-	glCullFace(GL_BACK);
 	renderEdges();
-	glCullFace(GL_BACK);
 	renderer::set_render_target(frame);
 	renderer::clear();
 	renderSkyBox(M, V, P, MVP);
 	renderMeshes(V, P);
-	glCullFace(GL_BACK);
 	renderMasking();
 
 	return true;
