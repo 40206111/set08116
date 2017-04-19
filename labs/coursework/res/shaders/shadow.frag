@@ -11,7 +11,7 @@ float calculate_shadow(in sampler2D shadow_map, in vec4 light_space_pos) {
 
   // check shadow coords are in range
   if (shadow_tex_coords.x < 0 || shadow_tex_coords.x > 1 ||
-      shadow_tex_coords.y < 0 || shadow_tex_coords.y > 1) {
+      shadow_tex_coords.y < 0 || shadow_tex_coords.y > 1 || light_space_pos.z < 0) {
     return 1.0;
   }
   float z = light_space_pos.z / light_space_pos.w;

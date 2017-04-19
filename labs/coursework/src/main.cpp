@@ -8,10 +8,16 @@ using namespace glm;
 effect eff;
 effect shadow_eff;
 effect sky_eff;
+effect simple;
+effect edges;
+effect masking;
+frame_buffer frame;
+frame_buffer mask;
 free_camera cam;
 arc_ball_camera ABcam;
 mesh skybox = skybox;
 map<string, mesh> meshes;
+geometry screen_quad;
 double cursor_x = 0;
 double cursor_y = 0;
 map<string, texture> tex;
@@ -26,442 +32,470 @@ int use_cam = 0;
 bool shadow_on = false;
 
 bool initialise() {
-  // hide cursor
-  glfwSetInputMode(renderer::get_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  // capture initial mouse position
-  glfwGetCursorPos(renderer::get_window(), &cursor_x, &cursor_y);
+	// hide cursor
+	glfwSetInputMode(renderer::get_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	// capture initial mouse position
+	glfwGetCursorPos(renderer::get_window(), &cursor_x, &cursor_y);
 
-  return true;
+	return true;
 }
 
 bool load_content() {
 
-  // create shadow map
-  shadow =
-      shadow_map(renderer::get_screen_width(), renderer::get_screen_height());
-  // create plane for viewing shadows
-  meshes["plane"] = mesh(geometry_builder::create_plane());
+	frame = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
+	mask = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
 
-  // create skybox
-  skybox = mesh(geometry_builder::create_box());
+	vector<vec3> positions{ vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f), vec3(-1.0f, 1.0f, 0.0f),
+		vec3(1.0f, 1.0f, 0.0f) };
+	vector<vec2> tex_coords{ vec2(0.0, 0.0), vec2(1.0f, 0.0f), vec2(0.0f, 1.0f), vec2(1.0f, 1.0f) };
+	screen_quad.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
+	screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
+	screen_quad.set_type(GL_TRIANGLE_STRIP);
 
-  // create floating islands
-  meshes["floating island"] = mesh(geometry("models/floating island.obj"));
-  meshes["island2"] = mesh(geometry("models/island2.obj"));
-  meshes["island3"] = mesh(geometry("models/island3.obj"));
+	// create shadow map
+	shadow =
+		shadow_map(renderer::get_screen_width(), renderer::get_screen_height());
+	// create plane for viewing shadows
+	meshes["plane"] = mesh(geometry_builder::create_plane());
 
-  meshes["plane"].get_transform().translate(vec3(0.0f, -25.0f, 0.0f));
-  // create castle
-  meshes["castle"] = mesh(geometry("models/castle.obj"));
+	// create skybox
+	skybox = mesh(geometry_builder::create_box());
 
-  // scale skybox
-  skybox.get_transform().scale = vec3(100.0f);
-  // translate island2
-  meshes["island2"].get_transform().translate(vec3(50.0f, 0.0f, -100.0f));
-  // translate island3
-  meshes["island3"].get_transform().translate(vec3(-50.0f, 0.0f, -90.0f));
-  // transform castle
-  meshes["castle"].get_transform().scale = vec3(0.3);
-  meshes["castle"].get_transform().translate(vec3(-1.0f, 5.3f, 0.0f));
-  meshes["castle"].get_transform().rotate(vec3(0.0f, half_pi<float>(), 0.0f));
+	// create floating islands
+	meshes["floating island"] = mesh(geometry("models/floating island.obj"));
+	meshes["island2"] = mesh(geometry("models/island2.obj"));
+	meshes["island3"] = mesh(geometry("models/island3.obj"));
 
-  // Load in shaders
-  eff.add_shader("shaders/shader.vert", GL_VERTEX_SHADER);
-  eff.add_shader("shaders/shader.frag", GL_FRAGMENT_SHADER);
-  eff.add_shader("shaders/directional.frag", GL_FRAGMENT_SHADER);
-  eff.add_shader("shaders/spot.frag", GL_FRAGMENT_SHADER);
-  eff.add_shader("shaders/point.frag", GL_FRAGMENT_SHADER);
-  eff.add_shader("shaders/shadow.frag", GL_FRAGMENT_SHADER);
-  eff.add_shader("shaders/normal_map.frag", GL_FRAGMENT_SHADER);
-  // Build effect
-  eff.build();
+	meshes["plane"].get_transform().translate(vec3(0.0f, -25.0f, 0.0f));
+	// create castle
+	meshes["castle"] = mesh(geometry("models/castle.obj"));
 
-  // load shadow vert
-  shadow_eff.add_shader("shaders/shadow.vert", GL_VERTEX_SHADER);
-  // build shadow effect
-  shadow_eff.build();
+	// scale skybox
+	skybox.get_transform().scale = vec3(100.0f);
+	// translate island2
+	meshes["island2"].get_transform().translate(vec3(50.0f, 0.0f, -100.0f));
+	// translate island3
+	meshes["island3"].get_transform().translate(vec3(-50.0f, 0.0f, -90.0f));
+	// transform castle
+	meshes["castle"].get_transform().scale = vec3(0.3);
+	meshes["castle"].get_transform().translate(vec3(-1.0f, 5.3f, 0.0f));
+	meshes["castle"].get_transform().rotate(vec3(0.0f, half_pi<float>(), 0.0f));
 
-  // load skybox shaders
-  sky_eff.add_shader("shaders/skybox.vert", GL_VERTEX_SHADER);
-  sky_eff.add_shader("shaders/skybox.frag", GL_FRAGMENT_SHADER);
-  // build skybox effect
-  sky_eff.build();
+	// Load in shaders
+	eff.add_shader("shaders/shader.vert", GL_VERTEX_SHADER);
+	eff.add_shader("shaders/shader.frag", GL_FRAGMENT_SHADER);
+	eff.add_shader("shaders/directional.frag", GL_FRAGMENT_SHADER);
+	eff.add_shader("shaders/spot.frag", GL_FRAGMENT_SHADER);
+	eff.add_shader("shaders/point.frag", GL_FRAGMENT_SHADER);
+	eff.add_shader("shaders/shadow.frag", GL_FRAGMENT_SHADER);
+	eff.add_shader("shaders/normal_map.frag", GL_FRAGMENT_SHADER);
+	// Build effect
+	eff.build();
 
-  tex["plane"] = texture("textures/blank_normal.png");
+	// load shadow vert
+	shadow_eff.add_shader("shaders/shadow.vert", GL_VERTEX_SHADER);
+	// build shadow effect
+	shadow_eff.build();
 
-  // set floating island texture
-  tex["floating island"] = texture("textures/isllandUV.png");
-  // set castle texture
-  tex["castle"] = texture("textures/castle.png");
+	// load skybox shaders
+	sky_eff.add_shader("shaders/skybox.vert", GL_VERTEX_SHADER);
+	sky_eff.add_shader("shaders/skybox.frag", GL_FRAGMENT_SHADER);
+	// build skybox effect
+	sky_eff.build();
 
-  // set island2 texture
-  tex["island2"] = texture("textures/island2.png");
-  // set island3 texture
-  tex["island3"] = texture("textures/island3.png");
+	//load simple shaders
+	simple.add_shader("shaders/simple.vert", GL_VERTEX_SHADER);
+	simple.add_shader("shaders/simple.frag", GL_FRAGMENT_SHADER);
+	//build simple effect
+	simple.build();
 
-  // set normal maps
-  normal_map["bricks"] = texture("textures/castle_normal.png");
-  normal_map["blank"] = texture("textures/blank_normal.png");
+	//load edges shaders
+	edges.add_shader("shaders/simple.vert", GL_VERTEX_SHADER);
+	edges.add_shader("shaders/edges.frag", GL_FRAGMENT_SHADER);
+	//build edges effect
+	edges.build();
 
-  // skybox filenames
-  array<string, 6> filenames = {"textures/front2.png", "textures/back2.png",
-                                "textures/up2.png",    "textures/down2.png",
-                                "textures/right2.png", "textures/left2.png"};
-  // set cube map
-  cube_map = cubemap(filenames);
+	//load masking shaders
+	masking.add_shader("shaders/simple.vert", GL_VERTEX_SHADER);
+	masking.add_shader("shaders/masking.frag", GL_FRAGMENT_SHADER);
+	//build masking effect#
+	masking.build();
 
-  // set light
-  light.set_ambient_intensity(vec4(0.1f));
-  light.set_light_colour(vec4(1.0f));
-  light.set_direction(normalize(vec3(-1.0, 0.5, 1.0)));
-  spot[0].set_position(vec3(0.0f, 25.0f, 0.0f));
-  spot[1].set_position(vec3(50.0f, 30.0f, -101.0f));
-  spot[2].set_position(vec3(-51.0f, 22.0f, -89.0f));
-  default_random_engine e;
-  uniform_int_distribution<int> dist(0, 4);
+	tex["plane"] = texture("textures/blank_normal.png");
 
-  // set all spotlight values
-  for (int i = 0; i < 3; i++) {
-    // set spot light
-    spot[i].set_light_colour(vec4(1.0f));
-    spot[i].set_direction(normalize(vec3(0.0f, -1.0f, 0.0f)));
-    spot[i].set_range(20.0f);
-    spot[i].set_power(10.0f);
-    spot[i].set_constant_attenuation(0.1f);
-  }
+	// set floating island texture
+	tex["floating island"] = texture("textures/isllandUV.png");
+	// set castle texture
+	tex["castle"] = texture("textures/castle.png");
 
-  // set point light
-  point.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
-  point.set_position(vec3(-6.0f, 3.0f, 0.0f));
-  point.set_range(5.0f);
+	// set island2 texture
+	tex["island2"] = texture("textures/island2.png");
+	// set island3 texture
+	tex["island3"] = texture("textures/island3.png");
 
-  material mat;
-  // set default material
-  mat.set_emissive(vec4(0.0f, 0.0f, 0.0f, 1.0f));
-  mat.set_diffuse(vec4(1.0f));
-  mat.set_shininess(50.0f);
-  mat.set_specular(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+	// set normal maps
+	normal_map["bricks"] = texture("textures/castle_normal.png");
+	normal_map["blank"] = texture("textures/blank_normal.png");
 
-  // set meshes specific material
-  meshes["floating island"].set_material(mat);
-  meshes["island2"].set_material(mat);
-  meshes["island3"].set_material(mat);
-  meshes["castle"].set_material(mat);
-  //set specular and diffuse of plane
-  mat.set_specular(vec4(0.0f, 0.8f, 0.2f, 1.0f));
-  mat.set_diffuse(vec4(1.0f, 0.0f, 0.5f, 1.0f));
-  meshes["plane"].set_material(mat);
+	// skybox filenames
+	array<string, 6> filenames = { "textures/front2.png", "textures/back2.png",
+								  "textures/up2.png",    "textures/down2.png",
+								  "textures/right2.png", "textures/left2.png" };
+	// set cube map
+	cube_map = cubemap(filenames);
 
-  // set shade data
-  vector<vec4> shade_data{vec4(0.0f, 0.0f, 0.0f, 1.0f),
-                          vec4(0.25f, 0.25f, 0.25f, 1.0f),
-                          vec4(0.5f, 0.5f, 0.5f, 1.0f),
-                          vec4(0.75f, 0.75f, 0.75f, 1.0f), vec4(1.0f)};
-  // set shade texture
-  shade = texture(shade_data, 5, 1, false, false);
+	// set light
+	light.set_ambient_intensity(vec4(0.1f));
+	light.set_light_colour(vec4(1.0f));
+	light.set_direction(normalize(vec3(-1.0, 0.5, 1.0)));
+	spot[0].set_position(vec3(0.0f, 25.0f, 0.0f));
+	spot[1].set_position(vec3(50.0f, 30.0f, -101.0f));
+	spot[2].set_position(vec3(-51.0f, 22.0f, -89.0f));
+	default_random_engine e;
+	uniform_int_distribution<int> dist(0, 4);
 
-  // Set free camera properties
-  cam.set_position(vec3(3.0f, 5.0f, 30.0f));
-  cam.set_target(vec3(0.0f, 0.0f, 0.0f));
-  cam.set_projection(quarter_pi<float>(), renderer::get_screen_aspect(), 0.1f,
-                     1000.0f);
+	// set all spotlight values
+	for (int i = 0; i < 3; i++) {
+		// set spot light
+		spot[i].set_light_colour(vec4(1.0f));
+		spot[i].set_direction(normalize(vec3(0.0f, -1.0f, 0.0f)));
+		spot[i].set_range(20.0f);
+		spot[i].set_power(10.0f);
+		spot[i].set_constant_attenuation(0.1f);
+	}
 
-  // set arc ball camera properties
-  ABcam.set_target(meshes["floating island"].get_transform().position);
-  ABcam.set_projection(quarter_pi<float>(), renderer::get_screen_aspect(), 0.1f,
-                       1000.0f);
-  ABcam.move(20.0f);
+	// set point light
+	point.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+	point.set_position(vec3(-6.0f, 3.0f, 0.0f));
+	point.set_range(5.0f);
 
-  return true;
+	material mat;
+	// set default material
+	mat.set_emissive(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+	mat.set_diffuse(vec4(1.0f));
+	mat.set_shininess(50.0f);
+	mat.set_specular(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+	// set meshes specific material
+	meshes["floating island"].set_material(mat);
+	meshes["island2"].set_material(mat);
+	meshes["island3"].set_material(mat);
+	meshes["castle"].set_material(mat);
+	//set specular and diffuse of plane
+	mat.set_specular(vec4(0.0f, 0.8f, 0.2f, 1.0f));
+	mat.set_diffuse(vec4(1.0f, 0.0f, 0.5f, 1.0f));
+	meshes["plane"].set_material(mat);
+
+	// set shade data
+	vector<vec4> shade_data{ vec4(0.0f, 0.0f, 0.0f, 1.0f),
+							vec4(0.25f, 0.25f, 0.25f, 1.0f),
+							vec4(0.5f, 0.5f, 0.5f, 1.0f),
+							vec4(0.75f, 0.75f, 0.75f, 1.0f), vec4(1.0f) };
+	// set shade texture
+	shade = texture(shade_data, 5, 1, false, false);
+
+	// Set free camera properties
+	cam.set_position(vec3(3.0f, 5.0f, 30.0f));
+	cam.set_target(vec3(0.0f, 0.0f, 0.0f));
+	cam.set_projection(quarter_pi<float>(), renderer::get_screen_aspect(), 0.1f,
+		1000.0f);
+
+	// set arc ball camera properties
+	ABcam.set_target(meshes["floating island"].get_transform().position);
+	ABcam.set_projection(quarter_pi<float>(), renderer::get_screen_aspect(), 0.1f,
+		1000.0f);
+	ABcam.move(20.0f);
+
+	return true;
 }
 
 // free camera method
 void FreeCam(float delta_time) {
 
-  // reset camera position
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_C)) {
-    cam.set_position(vec3(3.0f, 5.0f, 30.0f));
-    cam.set_pitch(0.0f);
-    cam.set_yaw(0.0f);
-  }
-  // reset camera orientation
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_R)) {
-    cam.set_pitch(0.0f);
-    cam.set_yaw(0.0f);
-  }
+	// reset camera position
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_C)) {
+		cam.set_position(vec3(3.0f, 5.0f, 30.0f));
+		cam.set_pitch(0.0f);
+		cam.set_yaw(0.0f);
+	}
+	// reset camera orientation
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_R)) {
+		cam.set_pitch(0.0f);
+		cam.set_yaw(0.0f);
+	}
 
-  // ratio of pixels to rotation
-  static double ratio_width =
-      quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
-  static double ratio_height =
-      (quarter_pi<float>() *
-       (static_cast<float>(renderer::get_screen_height()) /
-        static_cast<float>(renderer::get_screen_width()))) /
-      static_cast<float>(renderer::get_screen_height());
+	// ratio of pixels to rotation
+	static double ratio_width =
+		quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
+	static double ratio_height =
+		(quarter_pi<float>() *
+		(static_cast<float>(renderer::get_screen_height()) /
+			static_cast<float>(renderer::get_screen_width()))) /
+		static_cast<float>(renderer::get_screen_height());
 
-  // variables for mouse position
-  double current_x = 0;
-  double current_y = 0;
+	// variables for mouse position
+	double current_x = 0;
+	double current_y = 0;
 
-  // get current cursor position
-  glfwGetCursorPos(renderer::get_window(), &current_x, &current_y);
+	// get current cursor position
+	glfwGetCursorPos(renderer::get_window(), &current_x, &current_y);
 
-  // get current cursor position
-  double delta_x = current_x - cursor_x;
-  double delta_y = current_y - cursor_y;
+	// get current cursor position
+	double delta_x = current_x - cursor_x;
+	double delta_y = current_y - cursor_y;
 
-  // multiply deltas by ratios
-  delta_x *= ratio_width;
-  delta_y *= ratio_height;
+	// multiply deltas by ratios
+	delta_x *= ratio_width;
+	delta_y *= ratio_height;
 
-  // rotate cam
-  cam.rotate(delta_x, -delta_y);
+	// rotate cam
+	cam.rotate(delta_x, -delta_y);
 
-  // set speed
-  float speed = 10.0f * delta_time;
-  // set speed for up and down movement
-  float hspeed = 5.0f * delta_time;
+	// set speed
+	float speed = 10.0f * delta_time;
+	// set speed for up and down movement
+	float hspeed = 5.0f * delta_time;
 
-  // speed up
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT_CONTROL)) {
-    speed = 100.0f * delta_time;
-    hspeed = 50.0f * delta_time;
-  }
-  // use keyboard to move camera - WASD
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_W)) {
-    cam.move(vec3(0.0f, 0.0f, speed));
-  }
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_S)) {
-    cam.move(vec3(0.0f, 0.0f, -speed));
-  }
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_A)) {
-    cam.move(vec3(-speed, 0.0f, 0.0f));
-  }
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_D)) {
-    cam.move(vec3(speed, 0.0f, 0.0f));
-  }
-  // move camera up and down - space, shift
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_SPACE)) {
-    cam.move(vec3(0.0f, hspeed, 0.0f));
-  }
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT_SHIFT)) {
-    cam.move(vec3(0.0f, -hspeed, 0.0f));
-  }
-  // Update the camera
-  cam.update(delta_time);
+	// speed up
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT_CONTROL)) {
+		speed = 100.0f * delta_time;
+		hspeed = 50.0f * delta_time;
+	}
+	// use keyboard to move camera - WASD
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_W)) {
+		cam.move(vec3(0.0f, 0.0f, speed));
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_S)) {
+		cam.move(vec3(0.0f, 0.0f, -speed));
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_A)) {
+		cam.move(vec3(-speed, 0.0f, 0.0f));
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_D)) {
+		cam.move(vec3(speed, 0.0f, 0.0f));
+	}
+	// move camera up and down - space, shift
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_SPACE)) {
+		cam.move(vec3(0.0f, hspeed, 0.0f));
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT_SHIFT)) {
+		cam.move(vec3(0.0f, -hspeed, 0.0f));
+	}
+	// Update the camera
+	cam.update(delta_time);
 
-  // set skybox position to camera position
-  skybox.get_transform().position = cam.get_position();
+	// set skybox position to camera position
+	skybox.get_transform().position = cam.get_position();
 
-  // update cursot position
-  cursor_x = current_x;
-  cursor_y = current_y;
+	// update cursot position
+	cursor_x = current_x;
+	cursor_y = current_y;
 }
 
 // method to move arc ball camera with scroll wheel
 void scroll(GLFWwindow *window, double x, double y) {
-  // change camera distance - scroll wheel
-  if (y > 0) {
-    ABcam.move(y * -1.0f);
-  }
-  if (y < 0) {
-    ABcam.move(y * -1.0f);
-  }
+	// change camera distance - scroll wheel
+	if (y > 0) {
+		ABcam.move(y * -1.0f);
+	}
+	if (y < 0) {
+		ABcam.move(y * -1.0f);
+	}
 }
 
 // arc ball camera method
 void Arc_ball_cam(float delta_time) {
-  // meshes arc ball cam can target
-  static std::array<mesh, 3> targets{meshes["floating island"],
-                                     meshes["island2"], meshes["island3"]};
-  // int to scroll through meshes with
-  static int i = 0;
-  static bool down = false;
+	// meshes arc ball cam can target
+	static std::array<mesh, 3> targets{ meshes["floating island"],
+									   meshes["island2"], meshes["island3"] };
+	// int to scroll through meshes with
+	static int i = 0;
+	static bool down = false;
 
-  // check if N is pressed and that is has been released since it was last
-  // pressed
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_N) == GLFW_PRESS && !down) {
-    // set up to false and down to true
-    down = true;
-    // increment i
-    i++;
-    // reset i to 0
-    if (i >= 3) {
-      i = 0;
-    }
-    // set arc ball camera target
-    ABcam.set_target(targets[i].get_transform().position);
-  }
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_N) == GLFW_RELEASE && down) {
-    down = false;
-  }
+	// check if N is pressed and that is has been released since it was last
+	// pressed
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_N) == GLFW_PRESS && !down) {
+		// set up to false and down to true
+		down = true;
+		// increment i
+		i++;
+		// reset i to 0
+		if (i >= 3) {
+			i = 0;
+		}
+		// set arc ball camera target
+		ABcam.set_target(targets[i].get_transform().position);
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_N) == GLFW_RELEASE && down) {
+		down = false;
+	}
 
-  // ratio of pixels to rotation
-  static double ratio_width =
-      quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
-  static double ratio_height =
-      (quarter_pi<float>() *
-       (static_cast<float>(renderer::get_screen_height()) /
-        static_cast<float>(renderer::get_screen_width()))) /
-      static_cast<float>(renderer::get_screen_height());
+	// ratio of pixels to rotation
+	static double ratio_width =
+		quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
+	static double ratio_height =
+		(quarter_pi<float>() *
+		(static_cast<float>(renderer::get_screen_height()) /
+			static_cast<float>(renderer::get_screen_width()))) /
+		static_cast<float>(renderer::get_screen_height());
 
-  // variables for mouse position
-  double current_x = 0;
-  double current_y = 0;
+	// variables for mouse position
+	double current_x = 0;
+	double current_y = 0;
 
-  // get current cursor position
-  glfwGetCursorPos(renderer::get_window(), &current_x, &current_y);
+	// get current cursor position
+	glfwGetCursorPos(renderer::get_window(), &current_x, &current_y);
 
-  // get current cursor position
-  double delta_x = current_x - cursor_x;
-  double delta_y = current_y - cursor_y;
+	// get current cursor position
+	double delta_x = current_x - cursor_x;
+	double delta_y = current_y - cursor_y;
 
-  // multiply deltas by ratios
-  delta_x *= ratio_width;
-  delta_y *= ratio_height;
+	// multiply deltas by ratios
+	delta_x *= ratio_width;
+	delta_y *= ratio_height;
 
-  // rotate camera
-  ABcam.rotate(-delta_y, delta_x);
+	// rotate camera
+	ABcam.rotate(-delta_y, delta_x);
 
-  glfwSetScrollCallback(renderer::get_window(), scroll);
-  // update camera
-  ABcam.update(delta_time);
+	glfwSetScrollCallback(renderer::get_window(), scroll);
+	// update camera
+	ABcam.update(delta_time);
 
-  // set skybox to arc ball camera position
-  skybox.get_transform().position = ABcam.get_position();
+	// set skybox to arc ball camera position
+	skybox.get_transform().position = ABcam.get_position();
 
-  // Update cursor pos
-  cursor_x = current_x;
-  cursor_y = current_y;
+	// Update cursor pos
+	cursor_x = current_x;
+	cursor_y = current_y;
 }
 
 // method to control scene lights
 void LightControl() {
-  // bools to store on states of lights
-  static bool point_on = false;
-  static bool spot_on = false;
-  static bool dir_on = true;
-  // bools to test if button is pressed or not
-  static bool pdown = false;
-  static bool odown = false;
-  static bool ldown = false;
+	// bools to store on states of lights
+	static bool point_on = false;
+	static bool spot_on = false;
+	static bool dir_on = true;
+	// bools to test if button is pressed or not
+	static bool pdown = false;
+	static bool odown = false;
+	static bool ldown = false;
 
-  // toggle point light
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_P) == GLFW_RELEASE &&
-      !pdown) {
-    pdown = true;
-    // set point light colour
-    if (point_on) {
-      point.set_light_colour(vec4(1.0f));
-    }
-    if (!point_on) {
-      point.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    }
+	// toggle point light
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_P) == GLFW_RELEASE &&
+		!pdown) {
+		pdown = true;
+		// set point light colour
+		if (point_on) {
+			point.set_light_colour(vec4(1.0f));
+		}
+		if (!point_on) {
+			point.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+		}
 
-    point_on = !point_on;
-  }
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_P) == GLFW_PRESS && pdown) {
-    pdown = false;
-  }
+		point_on = !point_on;
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_P) == GLFW_PRESS && pdown) {
+		pdown = false;
+	}
 
-  // toggle spot light
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_O) == GLFW_RELEASE &&
-      !odown) {
-    odown = true;
-    // set spot light colours
-    if (spot_on) {
-      for (int i = 0; i < 3; i++) {
-        spot[i].set_light_colour(vec4(1.0f));
-      }
-      // turn shadow on
-      shadow_on = true;
-    }
-    if (!spot_on) {
-      for (int i = 0; i < 3; i++) {
-        spot[i].set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
-      }
-      // turn shadow off
-      shadow_on = false;
-    }
+	// toggle spot light
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_O) == GLFW_RELEASE &&
+		!odown) {
+		odown = true;
+		// set spot light colours
+		if (spot_on) {
+			for (int i = 0; i < 3; i++) {
+				spot[i].set_light_colour(vec4(1.0f));
+			}
+			// turn shadow on
+			shadow_on = true;
+		}
+		if (!spot_on) {
+			for (int i = 0; i < 3; i++) {
+				spot[i].set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+			}
+			// turn shadow off
+			shadow_on = false;
+		}
 
-    spot_on = !spot_on;
-  }
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_O) == GLFW_PRESS && odown) {
-    odown = false;
-  }
+		spot_on = !spot_on;
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_O) == GLFW_PRESS && odown) {
+		odown = false;
+	}
 
-  // toggle directional light
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_L) == GLFW_RELEASE &&
-      !ldown) {
-    ldown = true;
+	// toggle directional light
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_L) == GLFW_RELEASE &&
+		!ldown) {
+		ldown = true;
 
-    // set directional light colours
-    if (dir_on) {
-      light.set_light_colour(vec4(1.0f));
-    }
-    if (!dir_on) {
-      light.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    }
+		// set directional light colours
+		if (dir_on) {
+			light.set_light_colour(vec4(1.0f));
+		}
+		if (!dir_on) {
+			light.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+		}
 
-    dir_on = !dir_on;
-  }
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_L) == GLFW_PRESS && ldown) {
-    ldown = false;
-  }
+		dir_on = !dir_on;
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_L) == GLFW_PRESS && ldown) {
+		ldown = false;
+	}
 }
 
 bool update(float delta_time) {
-  // calculate total time
-  static float total_time = 0;
-  total_time += delta_time;
+	// calculate total time
+	static float total_time = 0;
+	total_time += delta_time;
 
-  // rotate and bob islands
-  meshes["floating island"].get_transform().rotate(
-      vec3(0.0f, delta_time * 0.5, 0.0f));
-  meshes["floating island"].get_transform().translate(
-      vec3(0.0f, sin(total_time) * 0.02, 0.0f));
-  meshes["island2"].get_transform().rotate(vec3(0.0f, delta_time * 0.3f, 0.0f));
-  meshes["island2"].get_transform().translate(
-      vec3(0.0f, sin(total_time - 1.5f) * 0.02, 0.0f));
-  meshes["island3"].get_transform().rotate(vec3(0.0f, delta_time * 0.7f, 0.0f));
-  meshes["island3"].get_transform().translate(
-      vec3(0.0f, sin(total_time - 2.5f) * 0.02, 0.0f));
+	// rotate and bob islands
+	meshes["floating island"].get_transform().rotate(
+		vec3(0.0f, delta_time * 0.5, 0.0f));
+	meshes["floating island"].get_transform().translate(
+		vec3(0.0f, sin(total_time) * 0.02, 0.0f));
+	meshes["island2"].get_transform().rotate(vec3(0.0f, delta_time * 0.3f, 0.0f));
+	meshes["island2"].get_transform().translate(
+		vec3(0.0f, sin(total_time - 1.5f) * 0.02, 0.0f));
+	meshes["island3"].get_transform().rotate(vec3(0.0f, delta_time * 0.7f, 0.0f));
+	meshes["island3"].get_transform().translate(
+		vec3(0.0f, sin(total_time - 2.5f) * 0.02, 0.0f));
 
-  // control light
-  LightControl();
+	// control light
+	LightControl();
 
-  // change current camera
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_0) && use_cam != 0) {
-    use_cam = 0;
-  }
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_1) && use_cam != 1) {
-    use_cam = 1;
-  }
+	// change current camera
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_0) && use_cam != 0) {
+		use_cam = 0;
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_1) && use_cam != 1) {
+		use_cam = 1;
+	}
 
-  // use controls for current camera
-  switch (use_cam) {
-  case 1:
-    // control Arc ball camera
-    Arc_ball_cam(delta_time);
-    break;
-  default:
-    // control camera using free cam
-    FreeCam(delta_time);
-  }
+	// use controls for current camera
+	switch (use_cam) {
+	case 1:
+		// control Arc ball camera
+		Arc_ball_cam(delta_time);
+		break;
+	default:
+		// control camera using free cam
+		FreeCam(delta_time);
+	}
 
-  if (shadow_on) {
-    // translate plane on y axis
-    if (glfwGetKey(renderer::get_window(), GLFW_KEY_UP)) {
-      meshes["plane"].get_transform().translate(
-          vec3(0.0f, 10 * delta_time, 0.0f));
-    }
-    if (glfwGetKey(renderer::get_window(), GLFW_KEY_DOWN)) {
-      meshes["plane"].get_transform().translate(
-          vec3(0.0f, -10 * delta_time, 0.0f));
-    }
-  }
+	if (shadow_on) {
+		// translate plane on y axis
+		if (glfwGetKey(renderer::get_window(), GLFW_KEY_UP)) {
+			meshes["plane"].get_transform().translate(
+				vec3(0.0f, 10 * delta_time, 0.0f));
+		}
+		if (glfwGetKey(renderer::get_window(), GLFW_KEY_DOWN)) {
+			meshes["plane"].get_transform().translate(
+				vec3(0.0f, -10 * delta_time, 0.0f));
+		}
+	}
 
-  return true;
+	return true;
 }
 
 void renderSkyBox(mat4 M, mat4 V, mat4 P, mat4 MVP)
@@ -639,6 +673,83 @@ void renderMeshes(mat4 V, mat4 P)
 	}
 }
 
+void renderSimpleMeshes(mat4 V, mat4 P)
+{
+	// Bind effect
+	renderer::bind(simple);
+
+	// loop through meshes
+	for (auto e : meshes) {
+
+		// don't render plane if shadow isn't on
+		if (e.first == "plane" && !shadow_on) {
+			break;
+		}
+
+		mesh m = e.second;
+		// create MVP matrix
+		mat4 M = m.get_transform().get_transform_matrix();
+
+		// calculate MVP
+		mat4 MVP = P * V * M;
+
+		// set MVP matrix uniform
+		glUniformMatrix4fv(simple.get_uniform_location("MVP"), 1, GL_FALSE,
+			value_ptr(MVP));
+
+		// put castle in transform hierarchy of floating island
+		if (e.first == "castle") {
+			auto VP = P * V;
+			M = meshes["floating island"].get_transform().get_transform_matrix() * M;
+			glUniformMatrix4fv(simple.get_uniform_location("MVP"), 1, GL_FALSE,
+				value_ptr(VP * M));
+		}
+
+		// bind textures
+		renderer::bind(tex[e.first], 0);
+		// set texture uniform
+		glUniform1i(simple.get_uniform_location("tex"), 0);
+
+		// render mesh
+		renderer::render(m);
+	}
+}
+
+void renderEdges()
+{
+	renderer::set_render_target(mask);
+	renderer::clear();
+
+	renderer::bind(edges);
+
+	glUniformMatrix4fv(edges.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(mat4(1.0f)));
+	
+	renderer::bind(frame.get_frame(), 0);
+	glUniform1i(edges.get_uniform_location("tex"), 0);
+
+	glUniform1f(edges.get_uniform_location("inverse_width"), 1.0f / renderer::get_screen_width());
+	glUniform1f(edges.get_uniform_location("inverse_height"), 1.0f / renderer::get_screen_height());
+	
+	renderer::render(screen_quad);
+}
+
+void renderMasking()
+{
+	renderer::set_render_target();
+	
+	renderer::bind(masking);
+
+	glUniformMatrix4fv(masking.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(mat4(1.0f)));
+
+	renderer::bind(frame.get_frame(), 0);
+	renderer::bind(mask.get_frame(), 1);
+
+	glUniform1i(masking.get_uniform_location("tex"), 0);
+	glUniform1i(masking.get_uniform_location("mask"), 1);
+
+	renderer::render(screen_quad);
+}
+
 bool render() {
 
 	// declaire mvp variables
@@ -659,26 +770,35 @@ bool render() {
 	// calculate MVP
 	mat4 MVP = P * V * M;
 
-	renderSkyBox(M, V, P, MVP);
-
 	// render shadows if shadows are on
 	if (shadow_on) {
 		renderShadows(M, V, P, MVP);
 	}
-
+	renderer::set_render_target(frame);
+	renderer::clear();
+	renderSkyBox(M, V, P, MVP);
+	renderSimpleMeshes(V, P);
+	glCullFace(GL_BACK);
+	renderEdges();
+	glCullFace(GL_BACK);
+	renderer::set_render_target(frame);
+	renderer::clear();
+	renderSkyBox(M, V, P, MVP);
 	renderMeshes(V, P);
+	glCullFace(GL_BACK);
+	renderMasking();
 
-  return true;
+	return true;
 }
 
 void main() {
-  // Create application
-  app application("Graphics Coursework");
-  // Set load content, update and render methods
-  application.set_load_content(load_content);
-  application.set_initialise(initialise);
-  application.set_update(update);
-  application.set_render(render);
-  // Run application
-  application.run();
+	// Create application
+	app application("Graphics Coursework");
+	// Set load content, update and render methods
+	application.set_load_content(load_content);
+	application.set_initialise(initialise);
+	application.set_update(update);
+	application.set_render(render);
+	// Run application
+	application.run();
 }
