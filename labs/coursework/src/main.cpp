@@ -30,6 +30,7 @@ vector<spot_light> spot(3);
 shadow_map shadow;
 int use_cam = 0;
 bool shadow_on = false;
+mat4 VP;
 
 bool initialise() {
 	// hide cursor
@@ -307,7 +308,7 @@ void scroll(GLFWwindow *window, double x, double y) {
 void Arc_ball_cam(float delta_time) {
 	// meshes arc ball cam can target
 	static std::array<mesh, 3> targets{ meshes["floating island"],
-									   meshes["island2"], meshes["island3"] };
+									   meshes["island2"], meshes["island3"]};
 	// int to scroll through meshes with
 	static int i = 0;
 	static bool down = false;
@@ -379,8 +380,9 @@ void LightControl() {
 	static bool pdown = false;
 	static bool odown = false;
 	static bool ldown = false;
+	static bool kdown = false;
 
-	// toggle point light
+	//toggle point light////////////////////////////////
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_P) == GLFW_RELEASE &&
 		!pdown) {
 		pdown = true;
@@ -397,8 +399,22 @@ void LightControl() {
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_P) == GLFW_PRESS && pdown) {
 		pdown = false;
 	}
+	/////////////////Point light toggle end//
 
-	// toggle spot light
+	//toggle shadow///////////////////////////////////
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_K) == GLFW_RELEASE && !spot_on && !kdown)
+	{
+		kdown = true;
+		// toggle shadow
+		shadow_on = !shadow_on;
+		cout << "ADJAWOFAWFJAJA " << spot_on << endl;
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_K) == GLFW_PRESS && kdown) {
+		kdown = false;
+	}
+	/////////////////Shadow toggle end//
+
+	//toggle spot light////////////////////////////////
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_O) == GLFW_RELEASE &&
 		!odown) {
 		odown = true;
@@ -407,24 +423,25 @@ void LightControl() {
 			for (int i = 0; i < 3; i++) {
 				spot[i].set_light_colour(vec4(1.0f));
 			}
-			// turn shadow on
-			shadow_on = true;
 		}
 		if (!spot_on) {
 			for (int i = 0; i < 3; i++) {
 				spot[i].set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+				shadow_on = false;
+
 			}
-			// turn shadow off
-			shadow_on = false;
 		}
 
 		spot_on = !spot_on;
 	}
+
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_O) == GLFW_PRESS && odown) {
 		odown = false;
 	}
+	/////////////////Spot light toggle end//
 
-	// toggle directional light
+	//toggle directional light///////////////////////////
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_L) == GLFW_RELEASE &&
 		!ldown) {
 		ldown = true;
@@ -442,6 +459,7 @@ void LightControl() {
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_L) == GLFW_PRESS && ldown) {
 		ldown = false;
 	}
+	/////////////////directional light toggle end//
 }
 
 bool update(float delta_time) {
@@ -498,7 +516,7 @@ bool update(float delta_time) {
 	return true;
 }
 
-void renderSkyBox(mat4 M, mat4 V, mat4 P, mat4 MVP)
+void renderSkyBox(mat4 MVP)
 {
 	// disable depth test, depth mask and face culling
 	glDisable(GL_DEPTH_TEST);
@@ -524,57 +542,20 @@ void renderSkyBox(mat4 M, mat4 V, mat4 P, mat4 MVP)
 	glEnable(GL_CULL_FACE);
 }
 
-void renderShadows(mat4 M, mat4 V, mat4 P, mat4 MVP)
-{
-	// set light perspective and view
-	auto LP = perspective<float>(half_pi<float>(), renderer::get_screen_aspect(),
-		0.1f, 1000.0f);
-	auto LV = shadow.get_view();
-
-	// bind shadow effect
-	renderer::bind(shadow_eff);
-
-	// sset render target to shadow
-	renderer::set_render_target(shadow);
-	// set shadow light direction and position
-	shadow.light_dir = spot[0].get_direction();
-	shadow.light_position = spot[0].get_position();
-
-	// set cull face to front
-	glCullFace(GL_FRONT);
-	// clear depth buffer
-	glClear(GL_DEPTH_BUFFER_BIT);
-
-	// loop through meshes
-	for (auto &e : meshes) {
-		auto m = e.second;
-		// set model matrix
-		mat4 M = m.get_transform().get_transform_matrix();
-
-		// put castle in transform hierarchy of floating island
-		if (e.first == "castle") {
-			M = meshes["floating island"].get_transform().get_transform_matrix() *
-				M;
-		}
-
-		// set MVP uniform for shadow effect
-		glUniformMatrix4fv(shadow_eff.get_uniform_location("MVP"), 1, GL_FALSE,
-			value_ptr(LP * LV * M));
-
-		// render mesh
-		renderer::render(m);
-	}
-
-	// set cull face to back
-	glCullFace(GL_BACK);
-	// set render target to screen
-	renderer::set_render_target();
-}
-
-void renderMeshes(mat4 V, mat4 P)
+void renderMeshes(mat4 VP)
 {
 	// Bind effect
 	renderer::bind(eff);
+	glUniform1i(eff.get_uniform_location("shade_tex"), 1);
+	renderer::bind(shade, 1);
+	renderer::bind(shadow.buffer->get_depth(), 5);
+	// set shade uniform
+	glUniform1i(eff.get_uniform_location("shade_tex"), 1);
+	// set shadow map uniform
+	glUniform1i(eff.get_uniform_location("shadow_map"), 5);
+	// set eye position to camera position
+	glUniform3fv(eff.get_uniform_location("eye_pos"), 1,
+		value_ptr(cam.get_position()));
 
 	// loop through meshes
 	for (auto e : meshes) {
@@ -589,13 +570,11 @@ void renderMeshes(mat4 V, mat4 P)
 		mat4 M = m.get_transform().get_transform_matrix();
 
 		// calculate MVP
-		mat4 MVP = P * V * M;
+		mat4 MVP = VP * M;
 
 		// set MVP matrix uniform
 		glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE,
 			value_ptr(MVP));
-
-		glUniform1i(eff.get_uniform_location("shade_tex"), 1);
 		// set normal matrix
 		glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE,
 			value_ptr(m.get_transform().get_normal_matrix()));
@@ -605,7 +584,6 @@ void renderMeshes(mat4 V, mat4 P)
 
 		// put castle in transform hierarchy of floating island
 		if (e.first == "castle") {
-			auto VP = P * V;
 			M = meshes["floating island"].get_transform().get_transform_matrix() * M;
 			glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE,
 				value_ptr(VP * M));
@@ -646,34 +624,25 @@ void renderMeshes(mat4 V, mat4 P)
 
 		// bind textures
 		renderer::bind(tex[e.first], 0);
-		renderer::bind(shade, 1);
-		renderer::bind(shadow.buffer->get_depth(), 5);
 
 		// set normal map uniform
 		glUniform1i(eff.get_uniform_location("normal_map"), 2);
 		// set texture uniform
 		glUniform1i(eff.get_uniform_location("tex"), 0);
-		// set shade uniform
-		glUniform1i(eff.get_uniform_location("shade_tex"), 1);
-		// set shadow map uniform
-		glUniform1i(eff.get_uniform_location("shadow_map"), 5);
 
-		// bind lights
-		renderer::bind(light, "light");
-		renderer::bind(spot, "spot");
-		renderer::bind(point, "point");
 		// bind material
 		renderer::bind(m.get_material(), "mat");
-		// set eye position to camera position
-		glUniform3fv(eff.get_uniform_location("eye_pos"), 1,
-			value_ptr(cam.get_position()));
 
 		// render mesh
 		renderer::render(m);
 	}
+	// bind lights
+	renderer::bind(light, "light");
+	renderer::bind(spot, "spot");
+	renderer::bind(point, "point");
 }
 
-void renderSimpleMeshes(mat4 V, mat4 P)
+void renderSimpleMeshes(mat4 VP)
 {
 	// Bind effect
 	renderer::bind(simple);
@@ -691,7 +660,7 @@ void renderSimpleMeshes(mat4 V, mat4 P)
 		mat4 M = m.get_transform().get_transform_matrix();
 
 		// calculate MVP
-		mat4 MVP = P * V * M;
+		mat4 MVP = VP* M;
 
 		// set MVP matrix uniform
 		glUniformMatrix4fv(simple.get_uniform_location("MVP"), 1, GL_FALSE,
@@ -699,7 +668,6 @@ void renderSimpleMeshes(mat4 V, mat4 P)
 
 		// put castle in transform hierarchy of floating island
 		if (e.first == "castle") {
-			auto VP = P * V;
 			M = meshes["floating island"].get_transform().get_transform_matrix() * M;
 			glUniformMatrix4fv(simple.get_uniform_location("MVP"), 1, GL_FALSE,
 				value_ptr(VP * M));
@@ -750,39 +718,84 @@ void renderMasking()
 	renderer::render(screen_quad);
 }
 
+void renderShadows()
+{
+	// set light perspective and view
+	auto LP = perspective<float>(half_pi<float>(), renderer::get_screen_aspect(),
+		0.1f, 1000.0f);
+	auto LV = shadow.get_view();
+
+	// bind shadow effect
+	renderer::bind(shadow_eff);
+
+	// sset render target to shadow
+	renderer::set_render_target(shadow);
+	// set shadow light direction and position
+	shadow.light_dir = spot[0].get_direction();
+	shadow.light_position = spot[0].get_position();
+
+	// set cull face to front
+	glCullFace(GL_FRONT);
+	// clear depth buffer
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	// loop through meshes
+	for (auto &e : meshes) {
+		auto m = e.second;
+		// set model matrix
+		mat4 M = m.get_transform().get_transform_matrix();
+
+		// put castle in transform hierarchy of floating island
+		if (e.first == "castle") {
+			M = meshes["floating island"].get_transform().get_transform_matrix() *
+				M;
+		}
+
+		// set MVP uniform for shadow effect
+		glUniformMatrix4fv(shadow_eff.get_uniform_location("MVP"), 1, GL_FALSE,
+			value_ptr(LP * LV * M));
+
+		// render mesh
+		renderer::render(m);
+	}
+
+	// set cull face to back
+	glCullFace(GL_BACK);
+	// set render target to screen
+	renderer::set_render_target();
+}
+
 bool render() {
 
 	// declaire mvp variables
 	mat4 M = skybox.get_transform().get_transform_matrix();
-	mat4 V = cam.get_view();
-	mat4 P = cam.get_projection();
+	mat4 VP = cam.get_projection() * cam.get_view();
 
 	// set V & P to be correct for camera
 	switch (use_cam) {
 	case 1:
-		V = ABcam.get_view();
-		P = ABcam.get_projection();
+		VP = ABcam.get_projection() * ABcam.get_view();
 		break;
 	default:
 		break;
 	}
 
 	// calculate MVP
-	mat4 MVP = P * V * M;
+	mat4 MVP = VP * M;
 
 	// render shadows if shadows are on
 	if (shadow_on) {
-		renderShadows(M, V, P, MVP);
+		renderShadows();
 	}
 	renderer::set_render_target(frame);
 	renderer::clear();
-	renderSkyBox(M, V, P, MVP);
-	renderSimpleMeshes(V, P);
+	renderSkyBox(MVP);
+	renderSimpleMeshes(VP);
 	renderEdges();
 	renderer::set_render_target(frame);
 	renderer::clear();
-	renderSkyBox(M, V, P, MVP);
-	renderMeshes(V, P);
+	renderSkyBox(MVP);
+	renderMeshes(VP);
 	renderMasking();
 
 	return true;

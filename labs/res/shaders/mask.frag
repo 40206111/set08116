@@ -7,8 +7,8 @@ uniform float inverse_width;
 // 1.0f / screen height
 uniform float inverse_height;
 // Surrounding pixels to sample and their scale
-const vec4 samples[6] = vec4[6](vec4(-1.0, 1.0, 0.0, 1.0), vec4(0.0, 1.0, 0.0, 2.0), vec4(1.0, 1.0, 0.0, 1.0),
-                                vec4(-1.0, -1.0, 0.0, -1.0), vec4(0.0, -1.0, 0.0, -2.0), vec4(1.0, -1.0, 0.0, -1.0));
+const vec4 samples[6] = vec4[6](vec4(-1.0, 1.0, 0.0, 2.0), vec4(0.0, 1.0, 0.0, 3.0), vec4(1.0, 1.0, 0.0, 2.0),
+                                vec4(-1.0, -1.0, 0.0, -2.0), vec4(0.0, -1.0, 0.0, -3.0), vec4(1.0, -1.0, 0.0, -2.0));
 
 // Incoming texture coordinate
 layout(location = 0) in vec2 tex_coord;

@@ -262,7 +262,7 @@ bool render() {
 	// Render the screen quad
 	renderer::render(screen_quad);
 	// *********************************
-
+	
 	return true;
 }
 

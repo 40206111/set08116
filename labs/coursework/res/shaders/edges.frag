@@ -19,7 +19,7 @@ void main()
     }
 
 
-	if (colour.r <= 0.3 && colour.g <= 0.3 && colour.b <= 0.3)
+	if (colour.r <= 0.07 && colour.g <= 0.07 && colour.b <= 0.07)
 	{
 	    colour = vec4(1.0);
 	}
