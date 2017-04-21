@@ -158,7 +158,7 @@ bool load_content() {
 	// set all spotlight values
 	for (int i = 0; i < 3; i++) {
 		// set spot light
-		spot[i].set_light_colour(vec4(1.0f));
+		spot[i].set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
 		spot[i].set_direction(normalize(vec3(0.0f, -1.0f, 0.0f)));
 		spot[i].set_range(20.0f);
 		spot[i].set_power(10.0f);
@@ -384,8 +384,11 @@ void LightControl() {
 
 	//toggle point light////////////////////////////////
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_P) == GLFW_RELEASE &&
-		!pdown) {
-		pdown = true;
+		pdown) {
+		pdown = false;
+
+		point_on = !point_on;
+
 		// set point light colour
 		if (point_on) {
 			point.set_light_colour(vec4(1.0f));
@@ -394,30 +397,32 @@ void LightControl() {
 			point.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
 		}
 
-		point_on = !point_on;
 	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_P) == GLFW_PRESS && pdown) {
-		pdown = false;
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_P) == GLFW_PRESS && !pdown) {
+		pdown = true;
 	}
 	/////////////////Point light toggle end//
 
 	//toggle shadow///////////////////////////////////
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_K) == GLFW_RELEASE && !spot_on && !kdown)
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_K) == GLFW_RELEASE && spot_on && kdown)
 	{
-		kdown = true;
+		kdown = false;
+
 		// toggle shadow
 		shadow_on = !shadow_on;
-		cout << "ADJAWOFAWFJAJA " << spot_on << endl;
 	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_K) == GLFW_PRESS && kdown) {
-		kdown = false;
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_K) == GLFW_PRESS && spot_on && !kdown) {
+		kdown = true;
 	}
 	/////////////////Shadow toggle end//
 
 	//toggle spot light////////////////////////////////
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_O) == GLFW_RELEASE &&
-		!odown) {
-		odown = true;
+		odown) {
+		odown = false;
+
+		spot_on = !spot_on;
+
 		// set spot light colours
 		if (spot_on) {
 			for (int i = 0; i < 3; i++) {
@@ -427,24 +432,23 @@ void LightControl() {
 		if (!spot_on) {
 			for (int i = 0; i < 3; i++) {
 				spot[i].set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
-
 				shadow_on = false;
-
 			}
 		}
 
-		spot_on = !spot_on;
 	}
 
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_O) == GLFW_PRESS && odown) {
-		odown = false;
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_O) == GLFW_PRESS && !odown) {
+		odown = true;
 	}
 	/////////////////Spot light toggle end//
 
 	//toggle directional light///////////////////////////
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_L) == GLFW_RELEASE &&
-		!ldown) {
-		ldown = true;
+		ldown) {
+		ldown = false;
+
+		dir_on = !dir_on;
 
 		// set directional light colours
 		if (dir_on) {
@@ -454,10 +458,9 @@ void LightControl() {
 			light.set_light_colour(vec4(0.0f, 0.0f, 0.0f, 1.0f));
 		}
 
-		dir_on = !dir_on;
 	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_L) == GLFW_PRESS && ldown) {
-		ldown = false;
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_L) == GLFW_PRESS && !ldown) {
+		ldown = true;
 	}
 	/////////////////directional light toggle end//
 }
