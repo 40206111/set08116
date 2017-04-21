@@ -11,6 +11,7 @@ effect sky_eff;
 effect simple;
 effect edges;
 effect masking;
+effect silh;
 frame_buffer frame;
 frame_buffer mask;
 free_camera cam;
@@ -121,6 +122,13 @@ bool load_content() {
 	masking.add_shader("shaders/masking.frag", GL_FRAGMENT_SHADER);
 	//build masking effect#
 	masking.build();
+
+	//load silhouette shaders
+	silh.add_shader("shaders/simpler.vert", GL_VERTEX_SHADER);
+	silh.add_shader("shaders/simpler.frag", GL_FRAGMENT_SHADER);
+	silh.add_shader("shaders/silhouette.geom", GL_GEOMETRY_SHADER);
+	//build silhouette shader
+	silh.build();
 
 	tex["plane"] = texture("textures/blank_normal.png");
 
@@ -819,6 +827,37 @@ bool render() {
 	renderer::set_render_target(frame);
 	renderer::clear();
 	renderSkyBox(MVP);
+	// Bind effect
+	renderer::bind(silh);
+
+	// loop through meshes
+	for (auto e : meshes) {
+		// don't render plane if shadow isn't on
+		if (e.first == "plane" && !shadow_on) {
+			break;
+		}
+
+		mesh m = e.second;
+		// create MVP matrix
+		mat4 M = m.get_transform().get_transform_matrix();
+
+		// calculate MVP
+		mat4 MVP = VP* M;
+
+		// set MVP matrix uniform
+		glUniformMatrix4fv(silh.get_uniform_location("MVP"), 1, GL_FALSE,
+			value_ptr(MVP));
+
+		// put castle in transform hierarchy of floating island
+		if (e.first == "castle") {
+			M = meshes["floating island"].get_transform().get_transform_matrix() * M;
+			glUniformMatrix4fv(silh.get_uniform_location("MVP"), 1, GL_FALSE,
+				value_ptr(VP * M));
+		}
+
+		// render mesh
+		renderer::render(m);
+	}
 	renderMeshes(VP);
 	//screen pass
 	renderMasking();
