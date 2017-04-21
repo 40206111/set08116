@@ -519,6 +519,7 @@ bool update(float delta_time) {
 	return true;
 }
 
+//method to render skybox
 void renderSkyBox(mat4 MVP)
 {
 	// disable depth test, depth mask and face culling
@@ -545,6 +546,7 @@ void renderSkyBox(mat4 MVP)
 	glEnable(GL_CULL_FACE);
 }
 
+//method to render meshes
 void renderMeshes(mat4 VP)
 {
 	// Bind effect
@@ -645,6 +647,7 @@ void renderMeshes(mat4 VP)
 	renderer::bind(point, "point");
 }
 
+//method to render meshes simply
 void renderSimpleMeshes(mat4 VP)
 {
 	// Bind effect
@@ -686,41 +689,56 @@ void renderSimpleMeshes(mat4 VP)
 	}
 }
 
+//method to render edges
 void renderEdges()
 {
+	//set render target to mask frame buffer
 	renderer::set_render_target(mask);
 	renderer::clear();
 
+	//bind edges effect
 	renderer::bind(edges);
 
+	//set MVP
 	glUniformMatrix4fv(edges.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(mat4(1.0f)));
 	
+	//bind frame buffer frame and set uniform
 	renderer::bind(frame.get_frame(), 0);
 	glUniform1i(edges.get_uniform_location("tex"), 0);
 
+	//set inverse width and height uniforms
 	glUniform1f(edges.get_uniform_location("inverse_width"), 1.0f / renderer::get_screen_width());
 	glUniform1f(edges.get_uniform_location("inverse_height"), 1.0f / renderer::get_screen_height());
 	
+	//render screen quad
 	renderer::render(screen_quad);
 }
 
+//method to render masking
 void renderMasking()
 {
+	//set render target to screen
 	renderer::set_render_target();
 	
+	//bind masking effect
 	renderer::bind(masking);
 
+	//set MVP uniform
 	glUniformMatrix4fv(masking.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(mat4(1.0f)));
 
+	//bind frame buffer frame and mask
 	renderer::bind(frame.get_frame(), 0);
 	renderer::bind(mask.get_frame(), 1);
 
+	//set texture and mask uniforms
 	glUniform1i(masking.get_uniform_location("tex"), 0);
 	glUniform1i(masking.get_uniform_location("mask"), 1);
 
+	//render screen quad
 	renderer::render(screen_quad);
 }
 
+//method to render shadows
 void renderShadows()
 {
 	// set light perspective and view
@@ -769,12 +787,12 @@ void renderShadows()
 }
 
 bool render() {
-
+	
 	// declaire mvp variables
 	mat4 M = skybox.get_transform().get_transform_matrix();
 	mat4 VP = cam.get_projection() * cam.get_view();
 
-	// set V & P to be correct for camera
+	// set VP to be correct for camera
 	switch (use_cam) {
 	case 1:
 		VP = ABcam.get_projection() * ABcam.get_view();
@@ -790,15 +808,19 @@ bool render() {
 	if (shadow_on) {
 		renderShadows();
 	}
+	//first pass
 	renderer::set_render_target(frame);
 	renderer::clear();
 	renderSkyBox(MVP);
 	renderSimpleMeshes(VP);
+	//second pass
 	renderEdges();
+	//third pass
 	renderer::set_render_target(frame);
 	renderer::clear();
 	renderSkyBox(MVP);
 	renderMeshes(VP);
+	//screen pass
 	renderMasking();
 
 	return true;
