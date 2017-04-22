@@ -5,7 +5,7 @@ Free Camera - default
 	Activate - 0
 	Move - wasd
 	Reset to starting postition - c
-	Reset facing direction - r
+	Reset facing direction - x
 
 Arc Ball Camera
 	Activate - 1
@@ -23,3 +23,14 @@ Point - default off
 Spot - default off
 	Toggle - o
 	Shadows - k
+
+FILTER
+Red - default 0.0
+	Increase - R
+	Decrease
+Green - default 0.0
+	Increase - G
+	Decrease - Right_Shift + G
+Blue - default 0.0
+	Increase - RB
+	Decrease - Right_Shift + B

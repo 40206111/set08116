@@ -31,6 +31,7 @@ shadow_map shadow;
 int use_cam = 0;
 bool shadow_on = false;
 mat4 VP;
+vec3 filter_col(0.0, 0.0, 0.0);
 
 bool initialise() {
 	// hide cursor
@@ -218,7 +219,7 @@ void FreeCam(float delta_time) {
 		cam.set_yaw(0.0f);
 	}
 	// reset camera orientation
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_R)) {
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_X)) {
 		cam.set_pitch(0.0f);
 		cam.set_yaw(0.0f);
 	}
@@ -305,8 +306,8 @@ void scroll(GLFWwindow *window, double x, double y) {
 // arc ball camera method
 void Arc_ball_cam(float delta_time) {
 	// meshes arc ball cam can target
-	static std::array<mesh, 4> targets{ meshes["floating island"],
-									   meshes["island2"], meshes["island3"], mesh(peeps)};
+	static std::array<mesh, 3> targets{ meshes["floating island"],
+									   meshes["island2"], meshes["island3"] };
 	// int to scroll through meshes with
 	static int i = 0;
 	static bool down = false;
@@ -319,7 +320,7 @@ void Arc_ball_cam(float delta_time) {
 		// increment i
 		i++;
 		// reset i to 0
-		if (i >= 4) {
+		if (i >= 3) {
 			i = 0;
 		}
 		// set arc ball camera target
@@ -463,6 +464,43 @@ void LightControl() {
 	/////////////////directional light toggle end//
 }
 
+//method for colouring filter
+void filterControl(float delta_time)
+{
+	//increase red -R
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_R) && !glfwGetKey(renderer::get_window(), GLFW_KEY_RIGHT_SHIFT) && filter_col.r != 1.0f)
+	{
+		filter_col += vec3(0.1f * delta_time, 0.0f, 0.0f);
+	}
+	//decrease red -Right Shift + R
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_R) && glfwGetKey(renderer::get_window(), GLFW_KEY_RIGHT_SHIFT) && filter_col.r != 0.0f)
+	{
+		filter_col -= vec3(0.1f * delta_time, 0.0f, 0.0f);
+	}
+
+	//increase green -G
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_G) && !glfwGetKey(renderer::get_window(), GLFW_KEY_RIGHT_SHIFT) && filter_col.g != 1.0f)
+	{
+		filter_col += vec3(0.0f, 0.1f * delta_time, 0.0f);
+	}
+	//decrease green -Right Shift + G
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_G) && glfwGetKey(renderer::get_window(), GLFW_KEY_RIGHT_SHIFT) && filter_col.g != 0.0f)
+	{
+		filter_col -= vec3(0.0f, 0.1f * delta_time, 0.0f);
+	}
+
+	//increase blue -B
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_B) && !glfwGetKey(renderer::get_window(), GLFW_KEY_RIGHT_SHIFT) && filter_col.b != 1.0f)
+	{
+		filter_col += vec3(0.0f, 0.0f, 0.1f * delta_time);
+	}
+	//decrease blue -Right Shift + B
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_B) && glfwGetKey(renderer::get_window(), GLFW_KEY_RIGHT_SHIFT) && filter_col.b != 0.0f)
+	{
+		filter_col -= vec3(0.0f, 0.0f, 0.1f * delta_time);
+	}
+}
+
 bool update(float delta_time) {
 	// calculate total time
 	static float total_time = 0;
@@ -490,6 +528,9 @@ bool update(float delta_time) {
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_1) && use_cam != 1) {
 		use_cam = 1;
 	}
+
+	//control filter
+	filterControl(delta_time);
 
 	// use controls for current camera
 	switch (use_cam) {
@@ -709,7 +750,7 @@ void renderEdges()
 
 	//set MVP
 	glUniformMatrix4fv(edges.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(mat4(1.0f)));
-	
+
 	//bind frame buffer frame and set uniform
 	renderer::bind(frame.get_frame(), 0);
 	glUniform1i(edges.get_uniform_location("tex"), 0);
@@ -717,7 +758,7 @@ void renderEdges()
 	//set inverse width and height uniforms
 	glUniform1f(edges.get_uniform_location("inverse_width"), 1.0f / renderer::get_screen_width());
 	glUniform1f(edges.get_uniform_location("inverse_height"), 1.0f / renderer::get_screen_height());
-	
+
 	//render screen quad
 	renderer::render(screen_quad);
 }
@@ -727,7 +768,7 @@ void renderMasking()
 {
 	//set render target to screen
 	renderer::set_render_target();
-	
+
 	//bind masking effect
 	renderer::bind(masking);
 
@@ -741,6 +782,9 @@ void renderMasking()
 	//set texture and mask uniforms
 	glUniform1i(masking.get_uniform_location("tex"), 0);
 	glUniform1i(masking.get_uniform_location("mask"), 1);
+
+	//set filter colour uniform
+	glUniform3fv(masking.get_uniform_location("filter_col"), 1, value_ptr(filter_col));
 
 	//render screen quad
 	renderer::render(screen_quad);
@@ -795,7 +839,7 @@ void renderShadows()
 }
 
 bool render() {
-	
+
 	// declaire mvp variables
 	mat4 M = skybox.get_transform().get_transform_matrix();
 	mat4 VP;
