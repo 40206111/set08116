@@ -38,5 +38,5 @@ void main()
 	}
 	
 	//FOR TESTING SILHOUETTING
-	    colour = vec4(1.0);
+	   colour = vec4(1.0);
 }

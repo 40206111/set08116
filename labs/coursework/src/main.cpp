@@ -842,6 +842,7 @@ bool render() {
 	renderer::bind(silh);
 	
 	glUniform3fv(silh.get_uniform_location("cam_pos"), 1, value_ptr(cam.get_position()));
+	glUniform1f(silh.get_uniform_location("line_width"), 0.2);
 	
 	// loop through meshes
 	for (auto e : meshes) {
