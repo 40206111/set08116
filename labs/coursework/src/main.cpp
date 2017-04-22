@@ -11,14 +11,12 @@ effect sky_eff;
 effect simple;
 effect edges;
 effect masking;
-effect bilb;
 frame_buffer frame;
 frame_buffer mask;
 free_camera cam;
 arc_ball_camera ABcam;
 mesh skybox = skybox;
 map<string, mesh> meshes;
-geometry peeps;
 geometry screen_quad;
 double cursor_x = 0;
 double cursor_y = 0;
@@ -54,21 +52,6 @@ bool load_content() {
 	screen_quad.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
 	screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
 	screen_quad.set_type(GL_TRIANGLE_STRIP);
-
-	vector<vec3> positions2;
-
-	// Allows creation of random points.  Note range
-	default_random_engine e;
-	uniform_real_distribution<float> dist(-100, 100);
-
-	// Randomly generate points
-	for (auto i = 0; i < 1000; ++i)
-		positions2.push_back(vec3(dist(e), dist(e), dist(e)));
-
-	peeps.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
-	peeps.set_type(GL_POINTS);
-
-	tex["peeps"] = texture("textures/person.png");
 
 	// create shadow map
 	shadow =
@@ -138,13 +121,6 @@ bool load_content() {
 	masking.add_shader("shaders/masking.frag", GL_FRAGMENT_SHADER);
 	//build masking effect#
 	masking.build();
-
-	//load bilboarding shaders
-	bilb.add_shader("shaders/simple.vert", GL_VERTEX_SHADER);
-	bilb.add_shader("shaders/simple.frag", GL_FRAGMENT_SHADER);
-	bilb.add_shader("shaders/billboard.geom", GL_GEOMETRY_SHADER);
-	//build bilboarding shader
-	bilb.build();
 
 	tex["plane"] = texture("textures/blank_normal.png");
 
@@ -852,16 +828,6 @@ bool render() {
 	renderer::set_render_target(frame);
 	renderer::clear();
 	renderSkyBox(MVP);
-	renderer::bind(bilb);
-
-	glUniformMatrix4fv(bilb.get_uniform_location("P"), 1, GL_FALSE, value_ptr(ABcam.get_projection()));
-	glUniformMatrix4fv(bilb.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(VP * meshes["island2"].get_transform().get_transform_matrix()));
-	glUniform1f(bilb.get_uniform_location("point_size"), 2.0f);
-	renderer::bind(tex["peeps"], 0);
-	glUniform1i(bilb.get_uniform_location("tex"), 0);
-
-	renderer::render(peeps);
-	
 	renderMeshes(VP);
 	//screen pass
 	renderMasking();
