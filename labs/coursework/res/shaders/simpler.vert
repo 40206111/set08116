@@ -3,7 +3,7 @@
 //incoming position
 layout(location = 0) in vec3 position;
 //incoming tex coord
-layout(location = 10) in vec3 normal;
+layout(location = 2) in vec3 normal;
 
 // Outgoing normal
 layout (location = 0)  out vec3 normal_out;

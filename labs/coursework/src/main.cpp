@@ -566,9 +566,19 @@ void renderMeshes(mat4 VP)
 	glUniform1i(eff.get_uniform_location("shade_tex"), 1);
 	// set shadow map uniform
 	glUniform1i(eff.get_uniform_location("shadow_map"), 5);
-	// set eye position to camera position
-	glUniform3fv(eff.get_uniform_location("eye_pos"), 1,
-		value_ptr(cam.get_position()));
+
+	switch (use_cam) {
+	case 1:
+		// set eye position to camera position
+		glUniform3fv(eff.get_uniform_location("eye_pos"), 1,
+			value_ptr(ABcam.get_position()));
+		break;
+	default:
+		// set eye position to camera position
+		glUniform3fv(eff.get_uniform_location("eye_pos"), 1,
+			value_ptr(cam.get_position()));
+		break;
+	}
 
 	// loop through meshes
 	for (auto e : meshes) {
@@ -798,7 +808,7 @@ bool render() {
 	
 	// declaire mvp variables
 	mat4 M = skybox.get_transform().get_transform_matrix();
-	mat4 VP = cam.get_projection() * cam.get_view();
+	mat4 VP;
 
 	// set VP to be correct for camera
 	switch (use_cam) {
@@ -806,6 +816,7 @@ bool render() {
 		VP = ABcam.get_projection() * ABcam.get_view();
 		break;
 	default:
+		VP = cam.get_projection() * cam.get_view();
 		break;
 	}
 
@@ -829,14 +840,16 @@ bool render() {
 	renderSkyBox(MVP);
 	// Bind effect
 	renderer::bind(silh);
-
+	
+	glUniform3fv(silh.get_uniform_location("cam_pos"), 1, value_ptr(cam.get_position()));
+	
 	// loop through meshes
 	for (auto e : meshes) {
 		// don't render plane if shadow isn't on
 		if (e.first == "plane" && !shadow_on) {
 			break;
 		}
-
+		
 		mesh m = e.second;
 		// create MVP matrix
 		mat4 M = m.get_transform().get_transform_matrix();
