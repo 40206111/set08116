@@ -24,6 +24,7 @@ bool initialise() {
 bool load_content() {
   // Vector we will use to store randomly generated points
   vector<vec3> positions;
+  vector<vec3> positions2;
 
   // Allows creation of random points.  Note range
   default_random_engine e;

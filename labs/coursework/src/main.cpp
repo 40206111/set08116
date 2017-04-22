@@ -11,13 +11,14 @@ effect sky_eff;
 effect simple;
 effect edges;
 effect masking;
-effect silh;
+effect bilb;
 frame_buffer frame;
 frame_buffer mask;
 free_camera cam;
 arc_ball_camera ABcam;
 mesh skybox = skybox;
 map<string, mesh> meshes;
+geometry peeps;
 geometry screen_quad;
 double cursor_x = 0;
 double cursor_y = 0;
@@ -53,6 +54,21 @@ bool load_content() {
 	screen_quad.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
 	screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
 	screen_quad.set_type(GL_TRIANGLE_STRIP);
+
+	vector<vec3> positions2;
+
+	// Allows creation of random points.  Note range
+	default_random_engine e;
+	uniform_real_distribution<float> dist(-100, 100);
+
+	// Randomly generate points
+	for (auto i = 0; i < 1000; ++i)
+		positions2.push_back(vec3(dist(e), dist(e), dist(e)));
+
+	peeps.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
+	peeps.set_type(GL_POINTS);
+
+	tex["peeps"] = texture("textures/person.png");
 
 	// create shadow map
 	shadow =
@@ -123,12 +139,12 @@ bool load_content() {
 	//build masking effect#
 	masking.build();
 
-	//load silhouette shaders
-	silh.add_shader("shaders/simpler.vert", GL_VERTEX_SHADER);
-	silh.add_shader("shaders/simpler.frag", GL_FRAGMENT_SHADER);
-	silh.add_shader("shaders/silhouette.geom", GL_GEOMETRY_SHADER);
-	//build silhouette shader
-	silh.build();
+	//load bilboarding shaders
+	bilb.add_shader("shaders/simple.vert", GL_VERTEX_SHADER);
+	bilb.add_shader("shaders/simple.frag", GL_FRAGMENT_SHADER);
+	bilb.add_shader("shaders/billboard.geom", GL_GEOMETRY_SHADER);
+	//build bilboarding shader
+	bilb.build();
 
 	tex["plane"] = texture("textures/blank_normal.png");
 
@@ -160,8 +176,6 @@ bool load_content() {
 	spot[0].set_position(vec3(0.0f, 25.0f, 0.0f));
 	spot[1].set_position(vec3(50.0f, 30.0f, -101.0f));
 	spot[2].set_position(vec3(-51.0f, 22.0f, -89.0f));
-	default_random_engine e;
-	uniform_int_distribution<int> dist(0, 4);
 
 	// set all spotlight values
 	for (int i = 0; i < 3; i++) {
@@ -315,8 +329,8 @@ void scroll(GLFWwindow *window, double x, double y) {
 // arc ball camera method
 void Arc_ball_cam(float delta_time) {
 	// meshes arc ball cam can target
-	static std::array<mesh, 3> targets{ meshes["floating island"],
-									   meshes["island2"], meshes["island3"]};
+	static std::array<mesh, 4> targets{ meshes["floating island"],
+									   meshes["island2"], meshes["island3"], mesh(peeps)};
 	// int to scroll through meshes with
 	static int i = 0;
 	static bool down = false;
@@ -329,7 +343,7 @@ void Arc_ball_cam(float delta_time) {
 		// increment i
 		i++;
 		// reset i to 0
-		if (i >= 3) {
+		if (i >= 4) {
 			i = 0;
 		}
 		// set arc ball camera target
@@ -830,7 +844,7 @@ bool render() {
 	//first pass
 	renderer::set_render_target(frame);
 	renderer::clear();
-	renderSkyBox(MVP);
+	//renderSkyBox(MVP);
 	renderSimpleMeshes(VP);
 	//second pass
 	renderEdges();
@@ -838,40 +852,16 @@ bool render() {
 	renderer::set_render_target(frame);
 	renderer::clear();
 	renderSkyBox(MVP);
-	// Bind effect
-	renderer::bind(silh);
+	renderer::bind(bilb);
+
+	glUniformMatrix4fv(bilb.get_uniform_location("P"), 1, GL_FALSE, value_ptr(ABcam.get_projection()));
+	glUniformMatrix4fv(bilb.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(VP * meshes["island2"].get_transform().get_transform_matrix()));
+	glUniform1f(bilb.get_uniform_location("point_size"), 2.0f);
+	renderer::bind(tex["peeps"], 0);
+	glUniform1i(bilb.get_uniform_location("tex"), 0);
+
+	renderer::render(peeps);
 	
-	glUniform3fv(silh.get_uniform_location("cam_pos"), 1, value_ptr(cam.get_position()));
-	glUniform1f(silh.get_uniform_location("line_width"), 0.2);
-	
-	// loop through meshes
-	for (auto e : meshes) {
-		// don't render plane if shadow isn't on
-		if (e.first == "plane" && !shadow_on) {
-			break;
-		}
-		
-		mesh m = e.second;
-		// create MVP matrix
-		mat4 M = m.get_transform().get_transform_matrix();
-
-		// calculate MVP
-		mat4 MVP = VP* M;
-
-		// set MVP matrix uniform
-		glUniformMatrix4fv(silh.get_uniform_location("MVP"), 1, GL_FALSE,
-			value_ptr(MVP));
-
-		// put castle in transform hierarchy of floating island
-		if (e.first == "castle") {
-			M = meshes["floating island"].get_transform().get_transform_matrix() * M;
-			glUniformMatrix4fv(silh.get_uniform_location("MVP"), 1, GL_FALSE,
-				value_ptr(VP * M));
-		}
-
-		// render mesh
-		renderer::render(m);
-	}
 	renderMeshes(VP);
 	//screen pass
 	renderMasking();

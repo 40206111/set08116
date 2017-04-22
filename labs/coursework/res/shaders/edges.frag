@@ -36,7 +36,4 @@ void main()
 		//else make colour black
 	    colour = vec4(0.0,0.0,0.0,1.0);
 	}
-	
-	//FOR TESTING SILHOUETTING
-	   colour = vec4(1.0);
 }
