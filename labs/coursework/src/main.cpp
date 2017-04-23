@@ -49,20 +49,19 @@ bool initialise() {
 }
 
 bool load_content() {
-
+	//initialise frames
 	frame = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
 	mask = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
 
-	vector<vec3> positions{ vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f), vec3(-1.0f, 1.0f, 0.0f),
-		vec3(1.0f, 1.0f, 0.0f) };
+	//screen quad positions
+	vector<vec3> positions{ vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f), vec3(-1.0f, 1.0f, 0.0f), vec3(1.0f, 1.0f, 0.0f) };
 	vector<vec2> tex_coords{ vec2(0.0, 0.0), vec2(1.0f, 0.0f), vec2(0.0f, 1.0f), vec2(1.0f, 1.0f) };
 	screen_quad.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
 	screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
 	screen_quad.set_type(GL_TRIANGLE_STRIP);
 
 	// create shadow map
-	shadow =
-		shadow_map(renderer::get_screen_width(), renderer::get_screen_height());
+	shadow = shadow_map(renderer::get_screen_width(), renderer::get_screen_height());
 	// create plane for viewing shadows
 	meshes["plane"] = mesh(geometry_builder::create_plane());
 
@@ -74,6 +73,7 @@ bool load_content() {
 	meshes["island2"] = mesh(geometry("models/island2.obj"));
 	meshes["island3"] = mesh(geometry("models/island3.obj"));
 
+	//translate plane
 	meshes["plane"].get_transform().translate(vec3(0.0f, -25.0f, 0.0f));
 	// create castle
 	meshes["castle"] = mesh(geometry("models/castle.obj"));
@@ -99,7 +99,7 @@ bool load_content() {
 	eff.add_shader("shaders/normal_map.frag", GL_FRAGMENT_SHADER);
 	// Build effect
 	eff.build();
-	
+
 	// load shadow vert
 	shadow_eff.add_shader("shaders/shadow.vert", GL_VERTEX_SHADER);
 	// build shadow effect
@@ -150,13 +150,12 @@ bool load_content() {
 	//build silhouette shader
 	silh.build();
 
+	//set plane texture
 	tex["plane"] = texture("textures/blank_normal.png");
-
 	// set floating island texture
 	tex["floating island"] = texture("textures/isllandUV.png");
 	// set castle texture
 	tex["castle"] = texture("textures/castle.png");
-
 	// set island2 texture
 	tex["island2"] = texture("textures/island2.png");
 	// set island3 texture
@@ -214,18 +213,14 @@ bool load_content() {
 	meshes["plane"].set_material(mat);
 
 	// set shade data
-	vector<vec4> shade_data{ vec4(0.0f, 0.0f, 0.0f, 1.0f),
-							vec4(0.25f, 0.25f, 0.25f, 1.0f),
-							vec4(0.5f, 0.5f, 0.5f, 1.0f),
-							vec4(0.75f, 0.75f, 0.75f, 1.0f), vec4(1.0f) };
+	vector<vec4> shade_data{vec4(0.0f, 0.0f, 0.0f, 1.0f), vec4(0.25f, 0.25f, 0.25f, 1.0f), vec4(0.5f, 0.5f, 0.5f, 1.0f), vec4(0.75f, 0.75f, 0.75f, 1.0f), vec4(1.0f)};
 	// set shade texture
 	shade = texture(shade_data, 5, 1, false, false);
 
 	// Set free camera properties
 	cam.set_position(vec3(3.0f, 5.0f, 30.0f));
 	cam.set_target(vec3(0.0f, 0.0f, 0.0f));
-	cam.set_projection(quarter_pi<float>(), renderer::get_screen_aspect(), 0.1f,
-		1000.0f);
+	cam.set_projection(quarter_pi<float>(), renderer::get_screen_aspect(), 0.1f, 1000.0f);
 
 	// set arc ball camera properties
 	ABcam.set_target(meshes["floating island"].get_transform().position);
@@ -234,6 +229,44 @@ bool load_content() {
 	ABcam.move(20.0f);
 
 	return true;
+}
+
+//method to move camera based on mouse movement
+void turnCam()
+{
+	// ratio of pixels to rotation
+	static double ratio_width = quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
+	static double ratio_height = (quarter_pi<float>() * (static_cast<float>(renderer::get_screen_height()) / static_cast<float>(renderer::get_screen_width()))) / static_cast<float>(renderer::get_screen_height());
+
+	// variables for mouse position
+	double current_x = 0;
+	double current_y = 0;
+
+	// get current cursor position
+	glfwGetCursorPos(renderer::get_window(), &current_x, &current_y);
+
+	// get current cursor position
+	double delta_x = current_x - cursor_x;
+	double delta_y = current_y - cursor_y;
+
+	// multiply deltas by ratios
+	delta_x *= ratio_width;
+	delta_y *= ratio_height;
+
+	//rotate correct camera
+	switch (use_cam) {
+	case 1:
+		ABcam.rotate(delta_x, -delta_y);
+		break;
+	default:
+		cam.rotate(delta_x, -delta_y);
+		break;
+	}
+
+
+	// update cursor position
+	cursor_x = current_x;
+	cursor_y = current_y;
 }
 
 // free camera method
@@ -251,32 +284,8 @@ void FreeCam(float delta_time) {
 		cam.set_yaw(0.0f);
 	}
 
-	// ratio of pixels to rotation
-	static double ratio_width =
-		quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
-	static double ratio_height =
-		(quarter_pi<float>() *
-		(static_cast<float>(renderer::get_screen_height()) /
-			static_cast<float>(renderer::get_screen_width()))) /
-		static_cast<float>(renderer::get_screen_height());
-
-	// variables for mouse position
-	double current_x = 0;
-	double current_y = 0;
-
-	// get current cursor position
-	glfwGetCursorPos(renderer::get_window(), &current_x, &current_y);
-
-	// get current cursor position
-	double delta_x = current_x - cursor_x;
-	double delta_y = current_y - cursor_y;
-
-	// multiply deltas by ratios
-	delta_x *= ratio_width;
-	delta_y *= ratio_height;
-
-	// rotate cam
-	cam.rotate(delta_x, -delta_y);
+	//set mouse rotation movement
+	turnCam();
 
 	// set speed
 	float speed = 10.0f * delta_time;
@@ -313,10 +322,6 @@ void FreeCam(float delta_time) {
 
 	// set skybox position to camera position
 	skybox.get_transform().position = cam.get_position();
-
-	// update cursot position
-	cursor_x = current_x;
-	cursor_y = current_y;
 }
 
 // method to move arc ball camera with scroll wheel
@@ -333,14 +338,12 @@ void scroll(GLFWwindow *window, double x, double y) {
 // arc ball camera method
 void Arc_ball_cam(float delta_time) {
 	// meshes arc ball cam can target
-	static std::array<mesh, 3> targets{ meshes["floating island"],
-									   meshes["island2"], meshes["island3"] };
+	static std::array<mesh, 3> targets{ meshes["floating island"], meshes["island2"], meshes["island3"] };
 	// int to scroll through meshes with
 	static int i = 0;
 	static bool down = false;
 
-	// check if N is pressed and that is has been released since it was last
-	// pressed
+	// switch to next island when N is pressed
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_N) == GLFW_PRESS && !down) {
 		// set up to false and down to true
 		down = true;
@@ -357,32 +360,8 @@ void Arc_ball_cam(float delta_time) {
 		down = false;
 	}
 
-	// ratio of pixels to rotation
-	static double ratio_width =
-		quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
-	static double ratio_height =
-		(quarter_pi<float>() *
-		(static_cast<float>(renderer::get_screen_height()) /
-			static_cast<float>(renderer::get_screen_width()))) /
-		static_cast<float>(renderer::get_screen_height());
-
-	// variables for mouse position
-	double current_x = 0;
-	double current_y = 0;
-
-	// get current cursor position
-	glfwGetCursorPos(renderer::get_window(), &current_x, &current_y);
-
-	// get current cursor position
-	double delta_x = current_x - cursor_x;
-	double delta_y = current_y - cursor_y;
-
-	// multiply deltas by ratios
-	delta_x *= ratio_width;
-	delta_y *= ratio_height;
-
-	// rotate camera
-	ABcam.rotate(-delta_y, delta_x);
+	//set mouse rotation movement
+	turnCam();
 
 	glfwSetScrollCallback(renderer::get_window(), scroll);
 	// update camera
@@ -390,10 +369,6 @@ void Arc_ball_cam(float delta_time) {
 
 	// set skybox to arc ball camera position
 	skybox.get_transform().position = ABcam.get_position();
-
-	// Update cursor pos
-	cursor_x = current_x;
-	cursor_y = current_y;
 }
 
 // method to control scene lights
@@ -589,7 +564,7 @@ void islandControl(float delta_time)
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_6) == GLFW_PRESS && !sixdown) {
 		sixdown = true;
 	}
-	
+
 	if (!pause)
 	{
 		// rotate and bob islands
@@ -638,6 +613,7 @@ bool update(float delta_time) {
 		FreeCam(delta_time);
 	}
 
+	//allow plane to be moved if shadow is on
 	if (shadow_on) {
 		// translate plane on y axis
 		if (glfwGetKey(renderer::get_window(), GLFW_KEY_UP)) {
@@ -663,8 +639,7 @@ void renderSkyBox(mat4 MVP)
 	renderer::bind(sky_eff);
 
 	// set MVP uniform
-	glUniformMatrix4fv(sky_eff.get_uniform_location("MVP"), 1, GL_FALSE,
-		value_ptr(MVP));
+	glUniformMatrix4fv(sky_eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
 
 	// bind cubemap and set uniform
 	renderer::bind(cube_map, 3);
@@ -721,11 +696,9 @@ void renderMeshes(mat4 VP)
 		mat4 MVP = VP * M;
 
 		// set MVP matrix uniform
-		glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE,
-			value_ptr(MVP));
+		glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
 		// set normal matrix
-		glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE,
-			value_ptr(m.get_transform().get_normal_matrix()));
+		glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE, value_ptr(m.get_transform().get_normal_matrix()));
 
 		// bind default normal map
 		renderer::bind(normal_map["blank"], 2);
@@ -733,14 +706,9 @@ void renderMeshes(mat4 VP)
 		// put castle in transform hierarchy of floating island
 		if (e.first == "castle") {
 			M = meshes["floating island"].get_transform().get_transform_matrix() * M;
-			glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE,
-				value_ptr(VP * M));
+			glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE,value_ptr(VP * M));
 			// set normal matrix
-			glUniformMatrix3fv(
-				eff.get_uniform_location("N"), 1, GL_FALSE,
-				value_ptr(
-					meshes["floating island"].get_transform().get_normal_matrix() *
-					m.get_transform().get_normal_matrix()));
+			glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE, value_ptr(meshes["floating island"].get_transform().get_normal_matrix() * m.get_transform().get_normal_matrix()));
 			// bind castle normal map
 			renderer::bind(normal_map["bricks"], 2);
 		}
@@ -819,17 +787,15 @@ void renderSimpleMeshes(mat4 VP, effect simp)
 		if (e.first == "castle") {
 			M = meshes["floating island"].get_transform().get_transform_matrix() * M;
 			// set matrix model uniform
-			glUniformMatrix4fv(simp.get_uniform_location("M"), 1, GL_FALSE,
-				value_ptr(M));
-			glUniformMatrix4fv(simp.get_uniform_location("MVP"), 1, GL_FALSE,
-				value_ptr(VP * M));
+			glUniformMatrix4fv(simp.get_uniform_location("M"), 1, GL_FALSE, value_ptr(M));
+			glUniformMatrix4fv(simp.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(VP * M));
 		}
 
 		// bind textures
 		renderer::bind(tex[e.first], 0);
 		// set texture uniform
 		glUniform1i(simp.get_uniform_location("tex"), 0);
-		
+
 		// render mesh
 		renderer::render(m);
 	}
@@ -936,7 +902,6 @@ void renderShadows()
 }
 
 bool render() {
-
 	// declaire mvp variables
 	mat4 M = skybox.get_transform().get_transform_matrix();
 	mat4 VP;
@@ -983,6 +948,7 @@ bool render() {
 			glUniform4fv(norms.get_uniform_location("col"), 1, value_ptr(vec4(0.0, 1.0, 0.0, 1.0)));
 			renderSimpleMeshes(VP, norms);
 		}
+		//render attempted outlines if they're on
 		if (atmptLines_on)
 		{
 			renderer::bind(silh);
@@ -997,10 +963,11 @@ bool render() {
 				glUniform3fv(silh.get_uniform_location("cam_pos"), 1, value_ptr(cam.get_position()));
 				break;
 			}
+			//set line width
 			glUniform1f(silh.get_uniform_location("line_width"), 0.4f);
 			renderSimpleMeshes(VP, silh);
 		}
-
+		//render all meshes with lighting
 		renderMeshes(VP);
 	}
 	else
@@ -1014,10 +981,10 @@ bool render() {
 		renderer::clear();
 		renderer::setClearColour(0.0, 1.0, 1.0);
 		renderSkyBox(MVP);
-		
+
 		//render wireframe
 		renderer::bind(wires);
-		glUniform4fv(norms.get_uniform_location("col"), 1, value_ptr(vec4(1.0, 0.0, 0.0, 1.0)));
+		glUniform4fv(wires.get_uniform_location("col"), 1, value_ptr(vec4(1.0, 0.0, 0.0, 1.0)));
 		renderSimpleMeshes(VP, wires);
 		//render normals if normals are on
 		if (normals_on)
