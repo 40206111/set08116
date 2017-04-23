@@ -535,53 +535,80 @@ void debugControl()
 	static bool mdown = false;
 	static bool hashdown = false;
 
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_N) == GLFW_RELEASE &&
+	//NORMALS TOGGLE
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_COMMA) == GLFW_RELEASE &&
 		ndown) {
 		ndown = false;
+		//turn normals on
 		normals_on = !normals_on;
-		cout << normals_on << endl;
 	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_N) == GLFW_PRESS && !ndown) {
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_COMMA) == GLFW_PRESS && !ndown) {
 		ndown = true;
 	}
+	//NORMALS TOGGLE END
 
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_M) == GLFW_RELEASE &&
+	//WIREFRAME TOGGLE
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_PERIOD) == GLFW_RELEASE &&
 		mdown) {
 		mdown = false;
+		//turn wireframe on
 		wireframe_on = !wireframe_on;
-		cout << wireframe_on << endl;
 	}
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_M) == GLFW_PRESS && !mdown) {
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_PERIOD) == GLFW_PRESS && !mdown) {
 		mdown = true;
 	}
+	//WIREFRAME TOGGLE END
 
+	//GEOMETRY OUTLINES TOGGLE
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_GRAVE_ACCENT) == GLFW_RELEASE &&
 		hashdown) {
 		hashdown = false;
+		//turn attempted lines on
 		atmptLines_on = !atmptLines_on;
-		cout << atmptLines_on << endl;
 	}
 	if (glfwGetKey(renderer::get_window(), GLFW_KEY_GRAVE_ACCENT) == GLFW_PRESS && !hashdown) {
 		hashdown = true;
 	}
+	//GEOMETRY OUTLINES TOGGLE END
 }
 
-bool update(float delta_time) {
+//method for toggling all movement on and off
+void islandControl(float delta_time)
+{
+	static bool sixdown = false;
+	static bool pause = false;
 	// calculate total time
 	static float total_time = 0;
 	total_time += delta_time;
 
-	// rotate and bob islands
-	meshes["floating island"].get_transform().rotate(
-		vec3(0.0f, delta_time * 0.5, 0.0f));
-	meshes["floating island"].get_transform().translate(
-		vec3(0.0f, sin(total_time) * 0.02, 0.0f));
-	meshes["island2"].get_transform().rotate(vec3(0.0f, delta_time * 0.3f, 0.0f));
-	meshes["island2"].get_transform().translate(
-		vec3(0.0f, sin(total_time - 1.5f) * 0.02, 0.0f));
-	meshes["island3"].get_transform().rotate(vec3(0.0f, delta_time * 0.7f, 0.0f));
-	meshes["island3"].get_transform().translate(
-		vec3(0.0f, sin(total_time - 2.5f) * 0.02, 0.0f));
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_6) == GLFW_RELEASE &&
+		sixdown) {
+		sixdown = false;
+		pause = !pause;
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_6) == GLFW_PRESS && !sixdown) {
+		sixdown = true;
+	}
+	
+	if (!pause)
+	{
+		// rotate and bob islands
+		meshes["floating island"].get_transform().rotate(
+			vec3(0.0f, delta_time * 0.5, 0.0f));
+		meshes["floating island"].get_transform().translate(
+			vec3(0.0f, sin(total_time) * 0.02, 0.0f));
+		meshes["island2"].get_transform().rotate(vec3(0.0f, delta_time * 0.3f, 0.0f));
+		meshes["island2"].get_transform().translate(
+			vec3(0.0f, sin(total_time - 1.5f) * 0.02, 0.0f));
+		meshes["island3"].get_transform().rotate(vec3(0.0f, delta_time * 0.7f, 0.0f));
+		meshes["island3"].get_transform().translate(
+			vec3(0.0f, sin(total_time - 2.5f) * 0.02, 0.0f));
+	}
+}
+
+bool update(float delta_time) {
+	//control islands
+	islandControl(delta_time);
 
 	// control light
 	LightControl();
@@ -597,6 +624,7 @@ bool update(float delta_time) {
 	//control filter
 	filterControl(delta_time);
 
+	//toggle debug views
 	debugControl();
 
 	// use controls for current camera
@@ -783,10 +811,16 @@ void renderSimpleMeshes(mat4 VP, effect simp)
 		// set MVP matrix uniform
 		glUniformMatrix4fv(simp.get_uniform_location("MVP"), 1, GL_FALSE,
 			value_ptr(MVP));
+		// set model matrix uniform
+		glUniformMatrix4fv(simp.get_uniform_location("M"), 1, GL_FALSE,
+			value_ptr(M));
 
 		// put castle in transform hierarchy of floating island
 		if (e.first == "castle") {
 			M = meshes["floating island"].get_transform().get_transform_matrix() * M;
+			// set matrix model uniform
+			glUniformMatrix4fv(simp.get_uniform_location("M"), 1, GL_FALSE,
+				value_ptr(M));
 			glUniformMatrix4fv(simp.get_uniform_location("MVP"), 1, GL_FALSE,
 				value_ptr(VP * M));
 		}
@@ -795,7 +829,7 @@ void renderSimpleMeshes(mat4 VP, effect simp)
 		renderer::bind(tex[e.first], 0);
 		// set texture uniform
 		glUniform1i(simp.get_uniform_location("tex"), 0);
-
+		
 		// render mesh
 		renderer::render(m);
 	}
@@ -929,7 +963,7 @@ bool render() {
 		//FIRSTPASS//
 		renderer::set_render_target(frame);
 		renderer::clear();
-		//renderSkyBox(MVP);
+		renderSkyBox(MVP);
 		renderer::bind(simple);
 		renderSimpleMeshes(VP, simple);
 

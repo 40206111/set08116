@@ -39,11 +39,13 @@ OBJECTS
 Plane - only renders if shadow's are on
 	Move up = up_arrow
 	Move down = down_arrow
+Movement
+	stop/start - 6
 
 DEBUG
 Normals
-	Activate - n
+	Activate - comma
 Wire frame
-	Activate - m
+	Activate - period
 Attempted Silhouette outlines
 	Activate - grave
