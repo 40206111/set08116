@@ -26,11 +26,24 @@ Spot - default off
 
 FILTER
 Red - default 0.0
-	Increase - R
+	Increase - r
 	Decrease
 Green - default 0.0
-	Increase - G
-	Decrease - Right_Shift + G
+	Increase - g
+	Decrease - right_shift + g
 Blue - default 0.0
-	Increase - RB
-	Decrease - Right_Shift + B
+	Increase - b
+	Decrease - right_shift + b
+
+OBJECTS
+Plane - only renders if shadow's are on
+	Move up = up_arrow
+	Move down = down_arrow
+
+DEBUG
+Normals
+	Activate - n
+Wire frame
+	Activate - m
+Attempted Silhouette outlines
+	Activate - grave

@@ -11,6 +11,9 @@ effect sky_eff;
 effect simple;
 effect edges;
 effect masking;
+effect norms;
+effect silh;
+effect wires;
 frame_buffer frame;
 frame_buffer mask;
 free_camera cam;
@@ -30,6 +33,9 @@ vector<spot_light> spot(3);
 shadow_map shadow;
 int use_cam = 0;
 bool shadow_on = false;
+bool normals_on = false;
+bool wireframe_on = false;
+bool atmptLines_on = false;
 mat4 VP;
 vec3 filter_col(0.0, 0.0, 0.0);
 
@@ -93,7 +99,7 @@ bool load_content() {
 	eff.add_shader("shaders/normal_map.frag", GL_FRAGMENT_SHADER);
 	// Build effect
 	eff.build();
-
+	
 	// load shadow vert
 	shadow_eff.add_shader("shaders/shadow.vert", GL_VERTEX_SHADER);
 	// build shadow effect
@@ -123,6 +129,27 @@ bool load_content() {
 	//build masking effect#
 	masking.build();
 
+	//load normals shaders
+	norms.add_shader("shaders/simpler.vert", GL_VERTEX_SHADER);
+	norms.add_shader("shaders/simpler.frag", GL_FRAGMENT_SHADER);
+	norms.add_shader("shaders/normals.geom", GL_GEOMETRY_SHADER);
+	//build normals shader
+	norms.build();
+
+	//load wireframe shaders
+	wires.add_shader("shaders/simpler.vert", GL_VERTEX_SHADER);
+	wires.add_shader("shaders/simpler.frag", GL_FRAGMENT_SHADER);
+	wires.add_shader("shaders/wireframe.geom", GL_GEOMETRY_SHADER);
+	//build silhouette shader
+	wires.build();
+
+	//load silhouette shaders
+	silh.add_shader("shaders/simpler.vert", GL_VERTEX_SHADER);
+	silh.add_shader("shaders/simpler.frag", GL_FRAGMENT_SHADER);
+	silh.add_shader("shaders/silhouette.geom", GL_GEOMETRY_SHADER);
+	//build silhouette shader
+	silh.build();
+
 	tex["plane"] = texture("textures/blank_normal.png");
 
 	// set floating island texture
@@ -149,7 +176,7 @@ bool load_content() {
 	// set light
 	light.set_ambient_intensity(vec4(0.1f));
 	light.set_light_colour(vec4(1.0f));
-	light.set_direction(normalize(vec3(-1.0, 0.5, 1.0)));
+	light.set_direction(normalize(vec3(-1.0, 0.5, 0.4)));
 	spot[0].set_position(vec3(0.0f, 25.0f, 0.0f));
 	spot[1].set_position(vec3(50.0f, 30.0f, -101.0f));
 	spot[2].set_position(vec3(-51.0f, 22.0f, -89.0f));
@@ -501,6 +528,44 @@ void filterControl(float delta_time)
 	}
 }
 
+//method for toggling debug modes
+void debugControl()
+{
+	static bool ndown = false;
+	static bool mdown = false;
+	static bool hashdown = false;
+
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_N) == GLFW_RELEASE &&
+		ndown) {
+		ndown = false;
+		normals_on = !normals_on;
+		cout << normals_on << endl;
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_N) == GLFW_PRESS && !ndown) {
+		ndown = true;
+	}
+
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_M) == GLFW_RELEASE &&
+		mdown) {
+		mdown = false;
+		wireframe_on = !wireframe_on;
+		cout << wireframe_on << endl;
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_M) == GLFW_PRESS && !mdown) {
+		mdown = true;
+	}
+
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_GRAVE_ACCENT) == GLFW_RELEASE &&
+		hashdown) {
+		hashdown = false;
+		atmptLines_on = !atmptLines_on;
+		cout << atmptLines_on << endl;
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_GRAVE_ACCENT) == GLFW_PRESS && !hashdown) {
+		hashdown = true;
+	}
+}
+
 bool update(float delta_time) {
 	// calculate total time
 	static float total_time = 0;
@@ -532,6 +597,8 @@ bool update(float delta_time) {
 	//control filter
 	filterControl(delta_time);
 
+	debugControl();
+
 	// use controls for current camera
 	switch (use_cam) {
 	case 1:
@@ -554,7 +621,6 @@ bool update(float delta_time) {
 				vec3(0.0f, -10 * delta_time, 0.0f));
 		}
 	}
-
 	return true;
 }
 
@@ -696,12 +762,9 @@ void renderMeshes(mat4 VP)
 	renderer::bind(point, "point");
 }
 
-//method to render meshes simply
-void renderSimpleMeshes(mat4 VP)
+//method to render meshes simply using given effect
+void renderSimpleMeshes(mat4 VP, effect simp)
 {
-	// Bind effect
-	renderer::bind(simple);
-
 	// loop through meshes
 	for (auto e : meshes) {
 
@@ -718,20 +781,20 @@ void renderSimpleMeshes(mat4 VP)
 		mat4 MVP = VP* M;
 
 		// set MVP matrix uniform
-		glUniformMatrix4fv(simple.get_uniform_location("MVP"), 1, GL_FALSE,
+		glUniformMatrix4fv(simp.get_uniform_location("MVP"), 1, GL_FALSE,
 			value_ptr(MVP));
 
 		// put castle in transform hierarchy of floating island
 		if (e.first == "castle") {
 			M = meshes["floating island"].get_transform().get_transform_matrix() * M;
-			glUniformMatrix4fv(simple.get_uniform_location("MVP"), 1, GL_FALSE,
+			glUniformMatrix4fv(simp.get_uniform_location("MVP"), 1, GL_FALSE,
 				value_ptr(VP * M));
 		}
 
 		// bind textures
 		renderer::bind(tex[e.first], 0);
 		// set texture uniform
-		glUniform1i(simple.get_uniform_location("tex"), 0);
+		glUniform1i(simp.get_uniform_location("tex"), 0);
 
 		// render mesh
 		renderer::render(m);
@@ -857,23 +920,81 @@ bool render() {
 	// calculate MVP
 	mat4 MVP = VP * M;
 
-	// render shadows if shadows are on
-	if (shadow_on) {
-		renderShadows();
+	if (!wireframe_on)
+	{
+		// render shadows if shadows are on
+		if (shadow_on) {
+			renderShadows();
+		}
+		//FIRSTPASS//
+		renderer::set_render_target(frame);
+		renderer::clear();
+		//renderSkyBox(MVP);
+		renderer::bind(simple);
+		renderSimpleMeshes(VP, simple);
+
+		//SECOND PASS//
+		renderEdges();
+
+		//THIRD PASS//
+		renderer::set_render_target(frame);
+		renderer::clear();
+		renderSkyBox(MVP);
+
+		//render normals if normals are on
+		if (normals_on)
+		{
+			renderer::bind(norms);
+			//bind colour
+			glUniform4fv(norms.get_uniform_location("col"), 1, value_ptr(vec4(0.0, 1.0, 0.0, 1.0)));
+			renderSimpleMeshes(VP, norms);
+		}
+		if (atmptLines_on)
+		{
+			renderer::bind(silh);
+			//bind colour
+			glUniform4fv(silh.get_uniform_location("col"), 1, value_ptr(vec4(0.0, 0.0, 0.0, 1.0)));
+			// set cam pos to be correct for camera
+			switch (use_cam) {
+			case 1:
+				glUniform3fv(silh.get_uniform_location("cam_pos"), 1, value_ptr(ABcam.get_position()));
+				break;
+			default:
+				glUniform3fv(silh.get_uniform_location("cam_pos"), 1, value_ptr(cam.get_position()));
+				break;
+			}
+			glUniform1f(silh.get_uniform_location("line_width"), 0.4f);
+			renderSimpleMeshes(VP, silh);
+		}
+
+		renderMeshes(VP);
 	}
-	//first pass
-	renderer::set_render_target(frame);
-	renderer::clear();
-	//renderSkyBox(MVP);
-	renderSimpleMeshes(VP);
-	//second pass
-	renderEdges();
-	//third pass
-	renderer::set_render_target(frame);
-	renderer::clear();
-	renderSkyBox(MVP);
-	renderMeshes(VP);
-	//screen pass
+	else
+	{
+		//FIRSTPASS//
+		renderer::set_render_target(mask);
+		//set clear colour to white so that mask doesn't colour wireframe
+		renderer::setClearColour(1.0, 1.0, 1.0);
+		renderer::clear();
+		renderer::set_render_target(frame);
+		renderer::clear();
+		renderer::setClearColour(0.0, 1.0, 1.0);
+		renderSkyBox(MVP);
+		
+		//render wireframe
+		renderer::bind(wires);
+		glUniform4fv(norms.get_uniform_location("col"), 1, value_ptr(vec4(1.0, 0.0, 0.0, 1.0)));
+		renderSimpleMeshes(VP, wires);
+		//render normals if normals are on
+		if (normals_on)
+		{
+			renderer::bind(norms);
+			glUniform4fv(norms.get_uniform_location("col"), 1, value_ptr(vec4(0.0, 1.0, 0.0, 1.0)));
+			renderSimpleMeshes(VP, norms);
+		}
+	}
+
+	//SCREEN PASS//
 	renderMasking();
 
 	return true;

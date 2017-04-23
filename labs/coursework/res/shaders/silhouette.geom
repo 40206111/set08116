@@ -1,61 +1,81 @@
 #version 440
 
+//incoming MVP uniform
 uniform mat4 MVP;
+//incoming camera position uniform
 uniform vec3 cam_pos;
+//incoming line width uniform
 uniform float line_width;
 
+//incoming triangles
 layout(triangles) in;
+//incoming normals
 layout(location = 0) flat in vec3 normal[];
 
-layout(triangle_strip, max_vertices = 6) out;
+//outgoing triangle strip
+layout(triangle_strip, max_vertices = 4) out;
 
 void main()
 {
-    vec3 vertex_pos;
-    vec3 norm;
+	//arrays to store front and back facing normals
     int fFace[3];
-    int bFace[3];
+	int bFace[3];
+	//int to store number of front facing normals
     int j = 0;
+	//int to store number of back facing normals
     int k = 0;
 
+	//loop through triangle vertices
     for (int i = 0; i < 3; ++i)
 	{
-        vertex_pos = gl_in[i].gl_Position.xyz;
-        norm = normalize(normal[i]);
+		//set vertex
+        vec3 vertex_pos = gl_in[i].gl_Position.xyz;
+		//normalize normal
+        vec3 norm = normalize(normal[i]);
+		//get vector from vertex to camera
         vec4 ca = vec4(cam_pos, 1.0) - (MVP * vec4(vertex_pos,1.0));
+
+		//Check if vertex normal is front facing
         if ((dot(norm, ca.xyz)) > 0.0)
 		{
+			//add vertex index to front face variable
             fFace[j] = i;
+			//increment number of front facing normals
             j++;
         }
-
 		else
 		{
+			//add vertex index to back face variable
             bFace[k] = i;
+			//increment number of back facing normals
             k++;
         }
 
 	}
 
+	//check if there's 1 or 2 front facing normals
 	if (j == 1)
 	{
 		float a = dot(normal[fFace[0]], (cam_pos - (MVP * gl_in[fFace[0]].gl_Position).xyz));
 		float b1 = dot(normal[bFace[0]], (cam_pos - (MVP * gl_in[bFace[0]].gl_Position).xyz));
 		float b2 = dot(normal[bFace[1]], (cam_pos - (MVP * gl_in[bFace[1]].gl_Position).xyz));
 
+		//calculate intersectionpoint
 		vec4 yab1 = (a * gl_in[bFace[0]].gl_Position - b1 * gl_in[fFace[0]].gl_Position)/(a - b1);
 		vec4 yab2 = (a * gl_in[bFace[1]].gl_Position - b2 * gl_in[fFace[0]].gl_Position)/(a - b2);
 
-		vec3 crx = cross((yab2 - yab1).xyz, (gl_in[bFace[0]].gl_Position - yab1).xyz);
-		crx = normalize(crx);
+		//find normal of new point
+		vec3 norm = cross((yab2 - yab1).xyz, (gl_in[bFace[0]].gl_Position - yab1).xyz);
+		norm = normalize(norm);
 
+		//emit silhouette quad
         gl_Position = MVP * yab1;
         EmitVertex();
         gl_Position = MVP * yab2;
         EmitVertex();
-		gl_Position = MVP * vec4(yab1.xyz + crx, 1.0);
+		gl_Position = MVP * vec4(yab1.xyz + norm * line_width, 1.0);
         EmitVertex();
-		gl_Position = MVP * vec4(yab2.xyz + crx, 1.0);
+		gl_Position = MVP * vec4(yab2.xyz + norm * line_width, 1.0);
         EmitVertex();
     }
 	else if (j == 2)
@@ -64,19 +84,22 @@ void main()
 		float a2 = dot(normal[fFace[1]], (cam_pos - (MVP * gl_in[fFace[1]].gl_Position).xyz));
 		float b = dot(normal[bFace[0]], (cam_pos - (MVP * gl_in[bFace[0]].gl_Position).xyz));
 
+		//calculate intersectionpoint
 		vec4 yab1 = (a1 * gl_in[bFace[0]].gl_Position - b * gl_in[fFace[0]].gl_Position)/(a1 - b);
 		vec4 yab2 = (a2 * gl_in[bFace[0]].gl_Position - b * gl_in[fFace[1]].gl_Position)/(a2 - b);
 		
-		vec3 crx = cross((yab2 - yab1).xyz, (gl_in[bFace[0]].gl_Position - yab1).xyz);
-		crx = normalize(crx);
+		//find normal of new point
+		vec3 norm = cross((yab2 - yab1).xyz, (gl_in[bFace[0]].gl_Position - yab1).xyz);
+		norm = normalize(norm);
 
+		//emit silhouette quad
         gl_Position = MVP * yab1;
         EmitVertex();
         gl_Position = MVP * yab2;
         EmitVertex();
-		gl_Position = MVP * vec4(yab1.xyz + crx, 1.0);
+		gl_Position = MVP * vec4(yab1.xyz + norm * line_width, 1.0);
         EmitVertex();
-		gl_Position = MVP * vec4(yab2.xyz + crx, 1.0);
+		gl_Position = MVP * vec4(yab2.xyz + norm * line_width, 1.0);
         EmitVertex();
     }
 	EndPrimitive();
