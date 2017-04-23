@@ -231,9 +231,21 @@ bool load_content() {
 	return true;
 }
 
-//method to move camera based on mouse movement
-void turnCam()
-{
+// free camera method
+void FreeCam(float delta_time) {
+
+	// reset camera position
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_C)) {
+		cam.set_position(vec3(3.0f, 5.0f, 30.0f));
+		cam.set_pitch(0.0f);
+		cam.set_yaw(0.0f);
+	}
+	// reset camera orientation
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_X)) {
+		cam.set_pitch(0.0f);
+		cam.set_yaw(0.0f);
+	}
+
 	// ratio of pixels to rotation
 	static double ratio_width = quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
 	static double ratio_height = (quarter_pi<float>() * (static_cast<float>(renderer::get_screen_height()) / static_cast<float>(renderer::get_screen_width()))) / static_cast<float>(renderer::get_screen_height());
@@ -253,39 +265,12 @@ void turnCam()
 	delta_x *= ratio_width;
 	delta_y *= ratio_height;
 
-	//rotate correct camera
-	switch (use_cam) {
-	case 1:
-		ABcam.rotate(delta_x, -delta_y);
-		break;
-	default:
-		cam.rotate(delta_x, -delta_y);
-		break;
-	}
-
+	//rotate camera
+	cam.rotate(delta_x, -delta_y);
 
 	// update cursor position
 	cursor_x = current_x;
 	cursor_y = current_y;
-}
-
-// free camera method
-void FreeCam(float delta_time) {
-
-	// reset camera position
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_C)) {
-		cam.set_position(vec3(3.0f, 5.0f, 30.0f));
-		cam.set_pitch(0.0f);
-		cam.set_yaw(0.0f);
-	}
-	// reset camera orientation
-	if (glfwGetKey(renderer::get_window(), GLFW_KEY_X)) {
-		cam.set_pitch(0.0f);
-		cam.set_yaw(0.0f);
-	}
-
-	//set mouse rotation movement
-	turnCam();
 
 	// set speed
 	float speed = 10.0f * delta_time;
@@ -360,8 +345,37 @@ void Arc_ball_cam(float delta_time) {
 		down = false;
 	}
 
-	//set mouse rotation movement
-	turnCam();
+	// ratio of pixels to rotation
+	static double ratio_width =
+		quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
+	static double ratio_height =
+		(quarter_pi<float>() *
+		(static_cast<float>(renderer::get_screen_height()) /
+			static_cast<float>(renderer::get_screen_width()))) /
+		static_cast<float>(renderer::get_screen_height());
+
+	// variables for mouse position
+	double current_x = 0;
+	double current_y = 0;
+
+	// get current cursor position
+	glfwGetCursorPos(renderer::get_window(), &current_x, &current_y);
+
+	// get current cursor position
+	double delta_x = current_x - cursor_x;
+	double delta_y = current_y - cursor_y;
+
+	// multiply deltas by ratios
+	delta_x *= ratio_width;
+	delta_y *= ratio_height;
+
+	// rotate camera
+	ABcam.rotate(-delta_y, delta_x);
+
+	// Update cursor pos
+	cursor_x = current_x;
+	cursor_y = current_y;
+
 
 	glfwSetScrollCallback(renderer::get_window(), scroll);
 	// update camera
@@ -782,6 +796,8 @@ void renderSimpleMeshes(mat4 VP, effect simp)
 		// set model matrix uniform
 		glUniformMatrix4fv(simp.get_uniform_location("M"), 1, GL_FALSE,
 			value_ptr(M));
+		// set model matrix uniform
+		glUniformMatrix3fv(simp.get_uniform_location("N"), 1, GL_FALSE, value_ptr(m.get_transform().get_normal_matrix()));
 
 		// put castle in transform hierarchy of floating island
 		if (e.first == "castle") {
